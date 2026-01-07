@@ -1,0 +1,13 @@
+[project]
+name = "ikf-ai-skills"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agno>=2.3.22",
+    "google-genai>=1.56.0",
+    "python-dotenv>=1.2.1",
+    "sqlalchemy>=2.0.45",
+    "tavily-python>=0.7.17",
+]
