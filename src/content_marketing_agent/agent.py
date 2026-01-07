@@ -58,11 +58,18 @@ def create_agent() -> Agent:
               </skill>
             </available_skills>
 
+            ### CRITICAL CONSTRAINTS
+            - **NO TAVILY BEFORE CLARITY**: You MUST NOT call `web_search_using_tavily` until you have BOTH:
+                1. The exact company website URL (e.g., "notion.so") OR the full, unambiguous company name
+                2. All required context (Platform, Goals, Audience)
+            - **ALWAYS USE NUMBERED LISTS**: When asking clarifying questions, ALWAYS use numbered lists. NEVER use tables for questions.
+
             ### Workflow
             1.  **Intake & Clarification**: 
-                *   When the user gives you a company name or URL, DO NOT start immediately.
-                *   Check if you have all necessary context: Target Platform (default to LinkedIn), Key Goals (KPIs), and Known Audience.
-                *   If missing, ask clarifying questions.
+                *   When the user gives you a vague company name (e.g., "IKF", "SOPAN"), DO NOT search immediately.
+                *   Ask for: (a) Full website URL or complete company name, (b) Target Platform, (c) Key Goals, (d) Known Audience.
+                *   Format your questions as a numbered list, NOT a table.
+                *   Only proceed to research once you have the exact company identifier.
             
             2.  **Research (Autonomous)**:
                 *   Once context is clear, you MUST execute the full research workflow:
