@@ -21,7 +21,7 @@ def capture_agent_response(agent, user_message: str) -> AgentResponse:
     """
     try:
         # Import the agent creator function
-        from content_marketing.agent import create_agent
+        from social_media.agent import create_agent
         
         # Get the agent's response
         # Note: We'll need to enhance this to capture thinking steps
@@ -41,10 +41,10 @@ def capture_agent_response(agent, user_message: str) -> AgentResponse:
 @router.post("/execute", response_model=AgentResponse)
 async def execute_agent(request: AgentRequest) -> AgentResponse:
     """
-    Execute the content marketing agent with the provided message.
+    Execute the social media agent with the provided message.
     
     This endpoint:
-    1. Loads the content marketing agent
+    1. Loads the social media agent
     2. Executes it with the user's message
     3. Returns the agent's response along with thinking steps
     
@@ -56,7 +56,7 @@ async def execute_agent(request: AgentRequest) -> AgentResponse:
     """
     try:
         # Import and create the agent
-        from content_marketing.agent import create_agent
+        from social_media.agent import create_agent
         agent = create_agent()
         
         # Execute and capture response
@@ -80,15 +80,15 @@ async def list_agents() -> dict[str, Any]:
     """
     List all available agents.
     
-    Currently returns only the content marketing agent.
+    Currently returns only the social media agent.
     Future: Dynamically discover agents from the agents/ directory.
     """
     return {
         "agents": [
             {
-                "id": "content_marketing",
-                "name": "Content Marketing Strategist",
-                "description": "Expert in content marketing strategy and research",
+                "id": "social_media",
+                "name": "Social Media Agent",
+                "description": "Expert in social media strategy, content marketing, and hygiene audits",
                 "status": "active"
             }
         ],

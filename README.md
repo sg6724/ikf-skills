@@ -17,15 +17,18 @@ src/
 │   ├── components/   # UI components
 │   └── static/       # CSS & assets
 └── agents/           # AI agents
-    └── content_marketing/
+    └── social_media/     # Social Media Agent (content strategy + hygiene audits)
 
 skills/
-└── social-media/     # Skills organized by domain
-    ├── audience-analysis/
-    ├── company-research/
-    ├── competitor-intel/
-    ├── content-strategy/
-    └── report-generation/
+├── social-media/         # Social media focused skills
+│   ├── audience-analysis/
+│   ├── company-research/
+│   ├── competitor-intel/
+│   ├── content-strategy/
+│   ├── report-generation/
+│   └── hygiene-check/    # NEW: Social media hygiene audits
+└── general/              # Cross-domain skills
+    └── docxmaker/        # NEW: Word document generation
 ```
 
 ## Setup
@@ -37,7 +40,7 @@ uv sync
 
 2. **Configure environment variables**:
 ```bash
-cp src/agents/content_marketing/.env.example src/agents/content_marketing/.env
+cp .env.example .env
 # Add your API keys (TAVILY_API_KEY, GOOGLE_API_KEY)
 ```
 
@@ -77,9 +80,11 @@ Frontend will be available at http://localhost:5001
 ## Usage
 
 1. Navigate to http://localhost:5001
-2. Enter a message like: "Create a strategy for ikf.co.in"
+2. Enter a message like:
+   - "Create a strategy for ikf.co.in"
+   - "Run a hygiene check for ikf.co.in (LinkedIn, Facebook, Instagram)"
 3. Provide additional details when prompted
-4. View the AI-generated strategy
+4. View the AI-generated strategy or hygiene report
 
 ## Design System
 

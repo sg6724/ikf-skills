@@ -13,24 +13,29 @@ from agno.tools.tavily import TavilyTools
 from agno.tools.reasoning import ReasoningTools
 from agno.db.sqlite import SqliteDb
 
-def get_skills_dir() -> Path:
-    """Get the absolute path to the skills directory."""
+from tools import generate_word_document
+
+def get_skills_dirs() -> list[Path]:
+    """Get the absolute paths to the skills directories."""
     current_dir = Path(__file__).resolve().parent
     project_root = current_dir.parent.parent.parent
-    return project_root / "skills" / "social-media"
+    return [
+        project_root / "skills" / "social-media",
+        project_root / "skills" / "general"
+    ]
 
 def create_agent() -> Agent:
-    """Create and return the Content Marketing Agent."""
+    """Create and return the Social Media Agent."""
     
-    skills_dir = get_skills_dir()
-    print(f"Loading skills from: {skills_dir}")
+    skills_dirs = get_skills_dirs()
+    print(f"Loading skills from: {', '.join(str(d) for d in skills_dirs)}")
 
     return Agent(
-        name="Content Marketing Strategist",
+        name="Social Media Agent",
         model=Gemini(id="gemini-flash-latest"),
-        description="I am an expert Content Marketing Strategist specializing in deep research and actionable strategy.",
+        description="I am an Expert Social Media Executive specializing in content strategy, hygiene audits, and social media optimization.",
         instructions=dedent("""
-            You are a world-class Content Marketing Strategist. Your goal is to conduct deep research and provide specific, high-impact content strategies.
+            You are a world-class Social Media Executive. Your goal is to help with all social media tasks: conduct deep research and develop content strategy, hygiene audits, profile optimization, and document generation.
 
             ### Available Skills
             You have access to the following specialized skills. Use `get_skill_instructions(skill_name)` to load them when needed:
@@ -56,20 +61,31 @@ def create_agent() -> Agent:
                 <name>report-generation</name>
                 <description>Compile all research and strategy into a comprehensive markdown report.</description>
               </skill>
+              <skill>
+                <name>hygiene-check</name>
+                <description>Conduct social media hygiene audits for LinkedIn, Facebook, and Instagram. Generate improvement recommendations.</description>
+              </skill>
+              <skill>
+                <name>docxmaker</name>
+                <description>Generate professional Word (.docx) documents from markdown content.</description>
+              </skill>
             </available_skills>
 
             ### CRITICAL CONSTRAINTS
-            - **NO TAVILY BEFORE CLARITY**: You MUST NOT call `web_search_using_tavily` until you have BOTH:
-                1. The exact company website URL (e.g., "notion.so") OR the full, unambiguous company name
-                2. All required context (Platform, Goals, Audience)
+            - **NO TAVILY BEFORE CLARITY**: You MUST NOT call `web_search_using_tavily` until you have complete context
             - **ALWAYS USE NUMBERED LISTS**: When asking clarifying questions, ALWAYS use numbered lists. NEVER use tables for questions.
+            - **ASK FOR DIRECT LINKS**: For hygiene checks, always ask for direct social media page URLs (not company name)
 
             ### Workflow
             1.  **Intake & Clarification**: 
-                *   When the user gives you a vague company name (e.g., "IKF", "SOPAN"), DO NOT search immediately.
-                *   Ask for: (a) Full website URL or complete company name, (b) Target Platform, (c) Key Goals, (d) Known Audience.
+                *   When the user requests a hygiene check, ask for:
+                    - **Direct social media page URLs** (e.g., "linkedin.com/company/ikfdigital", "facebook.com/ikfdigital", "instagram.com/ikfdigital")
+                *   If they only provide company name, ask: "What are the direct URLs to the social media pages you want me to audit?"
+                *   For content strategy, if given a vague company name (e.g., "IKF", "SOPAN"), ask for:
+                    - Full website URL or complete company name
+                    - Target Platform, Key Goals, Known Audience
                 *   Format your questions as a numbered list, NOT a table.
-                *   Only proceed to research once you have the exact company identifier.
+                *   Only proceed to research once you have the exact identifiers.
             
             2.  **Research (Autonomous)**:
                 *   Once context is clear, you MUST execute the full research workflow:
@@ -115,9 +131,15 @@ def create_agent() -> Agent:
             *   **Be Critical**: If a competitor is doing something bad, say it. If the client's UVP is weak, highlight it.
             *   **Use Data**: Back up claims with search findings where possible.
         """),
-        skills=Skills(loaders=[LocalSkills(str(skills_dir))]),
+        skills=Skills(loaders=[LocalSkills(str(d)) for d in skills_dirs]),
         tools=[
-            TavilyTools(api_key=os.getenv("TAVILY_API_KEY")),
+            TavilyTools(
+                api_key=os.getenv("TAVILY_API_KEY"),
+                search_depth="basic",    # Conserve credits
+                enable_extract=True,     # Enable URL content extraction
+                include_images=True      # Pass images to model for vision analysis
+            ),
+            generate_word_document,
         ],
         db=SqliteDb(db_file="tmp/agent_sessions.db"),
         add_history_to_context=True,
@@ -127,8 +149,8 @@ def create_agent() -> Agent:
 if __name__ == "__main__":
     agent = create_agent()
     
-    print("\n--- Content Marketing Agent Initialized ---")
-    print("Example input: 'Create a strategy for Notion (notion.so)'")
+    print("\n--- Social Media Agent Initialized ---")
+    print("Example: 'Create a strategy for Notion (notion.so)' or 'Run a hygiene check for ikf.co.in'")
     
     while True:
         try:
