@@ -2,35 +2,6 @@
 
 A FastAPI + FastHTML application for executing AI agents with skills-based architecture.
 
-## Project Structure
-
-```
-src/
-├── backend/          # FastAPI backend
-│   ├── main.py       # FastAPI app
-│   ├── config.py     # Configuration
-│   └── api/
-│       ├── models.py # Pydantic models
-│       └── routes/   # API endpoints
-├── frontend/         # FastHTML frontend
-│   ├── main.py       # FastHTML app
-│   ├── components/   # UI components
-│   └── static/       # CSS & assets
-└── agents/           # AI agents
-    └── social_media/     # Social Media Agent (content strategy + hygiene audits)
-
-skills/
-├── social-media/         # Social media focused skills
-│   ├── audience-analysis/
-│   ├── company-research/
-│   ├── competitor-intel/
-│   ├── content-strategy/
-│   ├── report-generation/
-│   └── hygiene-check/    # NEW: Social media hygiene audits
-└── general/              # Cross-domain skills
-    └── docxmaker/        # NEW: Word document generation
-```
-
 ## Setup
 
 1. **Install dependencies** (using `uv`):
@@ -45,6 +16,11 @@ cp .env.example .env
 ```
 
 ## Running the Application
+
+### Standalone Agent in TUI
+```bash
+uv run src/agents/social_media/agent.py
+```
 
 ### Start the Backend (Terminal 1)
 ```bash
@@ -61,45 +37,6 @@ uv run python src/frontend/main.py
 ```
 
 Frontend will be available at http://localhost:5001
-
-## API Endpoints
-
-### Agents
-- `POST /api/agents/execute` - Execute an agent with a message
-- `GET /api/agents/list` - List available agents
-
-### Skills
-- `GET /api/skills` - List all skills
-- `GET /api/skills/{domain}` - List skills by domain
-- `GET /api/skills/{domain}/{skill_name}` - Get skill details
-
-### Conversations (stubs for future)
-- `GET /api/conversations` - List conversations
-- `GET /api/conversations/{id}` - Get conversation
-
-## Usage
-
-1. Navigate to http://localhost:5001
-2. Enter a message like:
-   - "Create a strategy for ikf.co.in"
-   - "Run a hygiene check for ikf.co.in (LinkedIn, Facebook, Instagram)"
-3. Provide additional details when prompted
-4. View the AI-generated strategy or hygiene report
-
-## Design System
-
-- **Color Palette**: Soft dual-tone pastels
-  - Main background: `#F8F2FA`
-  - Sidebar/Input: `#F2E5F4`
-  - User messages: White
-  - Agent messages: Lavender
-  - Thinking steps: Soft mint green
-
-- **Features**:
-  - Rounded corners (12-20px)
-  - AI-native interface
-  - Markdown rendering
-  - HTMX-powered interactions
 
 ## Future Roadmap
 
