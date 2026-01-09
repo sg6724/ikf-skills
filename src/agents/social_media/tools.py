@@ -42,8 +42,8 @@ def generate_word_document(content: str, output_file: str, title: str = None) ->
             output_file=output_file,
             title=title
         )
-        return f"✅ Document successfully generated at: {file_path}"
+        return f"Document successfully generated at: {file_path}"
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        return f"❌ Error generating document: {str(e)}\n{error_details}"
+        return f"Error generating document: {str(e)}\n{error_details}"
