@@ -16,8 +16,8 @@ from agno.db.sqlite import SqliteDb
 def get_skills_dir() -> Path:
     """Get the absolute path to the skills directory."""
     current_dir = Path(__file__).resolve().parent
-    project_root = current_dir.parent.parent
-    return project_root / "skills"
+    project_root = current_dir.parent.parent.parent
+    return project_root / "skills" / "social-media"
 
 def create_agent() -> Agent:
     """Create and return the Content Marketing Agent."""
@@ -130,7 +130,6 @@ if __name__ == "__main__":
     print("\n--- Content Marketing Agent Initialized ---")
     print("Example input: 'Create a strategy for Notion (notion.so)'")
     
-    # Simple REPL with session preservation
     while True:
         try:
             user_input = input("\nUser: ")

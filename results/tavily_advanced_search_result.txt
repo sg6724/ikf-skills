@@ -1,0 +1,394 @@
+(ikf-ai-skills) vivek@Viveks-MacBook-Pro ikf-ai-skills % uv run src/content_marketing_agent/agent.py
+Loading skills from: /Users/vivek/IKF/ikf-ai/ikf-ai-skills/skills
+
+--- Content Marketing Agent Initialized ---
+Example input: 'Create a strategy for Notion (notion.so)'
+
+User: create a strategy for ikf
+┏━ Message ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                        ┃
+┃ create a strategy for ikf                                                              ┃
+┃                                                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━ Response (4.2s) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                        ┃
+┃ This sounds like a high-impact project. To deliver a world-class, actionable content   ┃
+┃ strategy, I first need to conduct a deep-dive on the company and its specific context. ┃
+┃                                                                                        ┃
+┃ The name "IKF" is quite common and could refer to several entities (e.g., an Indian    ┃
+┃ football foundation, an international consulting firm, or a local business).           ┃
+┃                                                                                        ┃
+┃ To ensure my research is accurate and the resulting strategy is effective, please      ┃
+┃ provide the following essential information:                                           ┃
+┃                                                                                        ┃
+┃  1 Full Website URL or Complete Company Name: Please provide the exact website URL     ┃
+┃    (e.g., ikftech.com) or the full, unambiguous company name.                          ┃
+┃  2 Target Content Platform(s): Which platform(s) is this strategy primarily focused on ┃
+┃    (e.g., LinkedIn, corporate blog, YouTube, etc.)?                                    ┃
+┃  3 Key Business Goals: What are the top 1-2 business outcomes the content should drive ┃
+┃    (e.g., lead generation for a specific product, talent recruitment, brand awareness  ┃
+┃    in a new market)?                                                                   ┃
+┃  4 Target Audience Profile: Who is the ideal customer or reader (e.g., "CTOs in the    ┃
+┃    manufacturing sector," "Marketing Directors at mid-market SaaS companies,"          ┃
+┃    "individual investors")?                                                            ┃
+┃                                                                                        ┃
+┃ Once I have this clarity, I will initiate the full research and strategy workflow.     ┃
+┃                                                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+User: 1. ikf.co.in 2. linkedin 3. lead generation and brand awareness 4. marketing and founders who want to bring their brand to social media
+┏━ Message ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                        ┃
+┃ 1. ikf.co.in 2. linkedin 3. lead generation and brand awareness 4. marketing and       ┃
+┃ founders who want to bring their brand to social media                                 ┃
+┃                                                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━ Tool Calls ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                        ┃
+┃ • get_skill_instructions(skill_name=company-research)                                  ┃
+┃ • web_search_using_tavily(query=ikf.co.in core business and services)                  ┃
+┃ • get_skill_instructions(skill_name=audience-analysis)                                 ┃
+┃ • web_search_using_tavily(query=pain points of marketing managers and founders hiring  ┃
+┃ digital marketing agencies)                                                            ┃
+┃ • get_skill_reference(reference_path=persona-template.md,                              ┃
+┃ skill_name=audience-analysis)                                                          ┃
+┃ • get_skill_instructions(skill_name=competitor-intel)                                  ┃
+┃ • web_search_using_tavily(query=top digital marketing and web development agencies in  ┃
+┃ India with strong LinkedIn presence)                                                   ┃
+┃ • web_search_using_tavily(query=Groovy Web LinkedIn content analysis vs WebFX India    ┃
+┃ LinkedIn)                                                                              ┃
+┃ • web_search_using_tavily(query=WebFX vs Groovy Web vs Digitas India LinkedIn content  ┃
+┃ performance)                                                                           ┃
+┃ • get_skill_instructions(skill_name=content-strategy)                                  ┃
+┃ • get_skill_reference(reference_path=linkedin-best-practices.md,                       ┃
+┃ skill_name=content-strategy)                                                           ┃
+┃ • get_skill_instructions(skill_name=report-generation)                                 ┃
+┃ • get_skill_reference(skill_name=report-generation,                                    ┃
+┃ reference_path=assets/report-template.md)                                              ┃
+┃                                                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━ Response (62.9s) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                        ┃
+┃ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ┃
+┃ ┃           World-Class Content Strategy Report: I Knowledge Factory (IKF)           ┃ ┃
+┃ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                                  🎯 Executive Summary                                  ┃
+┃                                                                                        ┃
+┃ This strategy is designed to position IKF, a 25-year digital veteran, as the           ┃
+┃ definitive thought leader in modern, results-driven digital strategy on LinkedIn.      ┃
+┃                                                                                        ┃
+┃ By moving beyond generic agency posts and focusing on the deep, measurable solutions   ┃
+┃ that address the primary pain points of Marketing Managers and Founders (e.g.,         ┃
+┃ mismatched expectations, poor ROI tracking, and agency opacity), IKF will drive Lead   ┃
+┃ Generation through actionable advice and establish clear Brand Awareness as a trusted, ┃
+┃ veteran partner.                                                                       ┃
+┃                                                                                        ┃
+┃ The strategy hinges on one unique gap: The Digital Strategy Longevity Gap. IKF will    ┃
+┃ leverage its 25+ years of experience to speak to long-term digital sustainability and  ┃
+┃ strategic partnerships, contrasting with younger competitors who focus only on         ┃
+┃ short-term tactical wins.                                                              ┃
+┃                                                                                        ┃
+┃ ────────────────────────────────────────────────────────────────────────────────────── ┃
+┃                     🏛️ Company Briefing: I Knowledge Factory (IKF)                      ┃
+┃                                                                                        ┃
+┃ Core Business: IKF is a multidisciplinary digital agency (based in India) specializing ┃
+┃ in end-to-end digital transformation, with a 25-year history in the market. They blend ┃
+┃ strategy, design, and performance marketing.                                           ┃
+┃                                                                                        ┃
+┃ Key Offerings:                                                                         ┃
+┃                                                                                        ┃
+┃  • Website Development: Custom, high-performance web solutions (including eCommerce).  ┃
+┃  • Digital Marketing: SEO, Performance Marketing, Social Media Management, and         ┃
+┃    Conversion Rate Optimization.                                                       ┃
+┃  • Application Development: Tailored mobile and software application solutions.        ┃
+┃                                                                                        ┃
+┃ Brand Voice: Veteran, Educational, Strategy-First, Results-Driven.                     ┃
+┃                                                                                        ┃
+┃ UVP: 25 Years of Digital Sustainability. While many agencies pop up and fade, IKF      ┃
+┃ emphasizes its longevity and adaptation (grew with the internet), offering clients a   ┃
+┃ stable, experienced partnership that integrates modern techniques (including AI) with  ┃
+┃ proven strategic fundamentals. They don't just execute tactics; they build resilient   ┃
+┃ digital foundations.                                                                   ┃
+┃                                                                                        ┃
+┃ ────────────────────────────────────────────────────────────────────────────────────── ┃
+┃                                  👥 Audience Personas                                  ┃
+┃                                                                                        ┃
+┃ The strategy targets two primary decision-makers, addressing their specific pain       ┃
+┃ points to drive lead conversion.                                                       ┃
+┃                                                                                        ┃
+┃                        1. Marketing Manager - "The ROI Driver"                         ┃
+┃                                                                                        ┃
+┃ Quote: "I need an agency that can prove their methods with hard data and communicate   ┃
+┃ clearly. No more black-box reporting."                                                 ┃
+┃                                                                                        ┃
+┃ Demographics:                                                                          ┃
+┃                                                                                        ┃
+┃  • Role: Marketing Manager, Digital Head, or VP of Marketing                           ┃
+┃  • Industry: Mid-market B2B or B2C (SaaS, E-commerce, Manufacturing)                   ┃
+┃  • Experience: Mid-to-Senior Level (5-15 years experience)                             ┃
+┃                                                                                        ┃
+┃ Psychographics:                                                                        ┃
+┃                                                                                        ┃
+┃  • Goals: Hit quarterly lead generation targets; demonstrate clear ROI to leadership;  ┃
+┃    streamline internal processes.                                                      ┃
+┃  • Pain Points: Mismatched expectations with previous agencies; lack of internal       ┃
+┃    resources; poor communication and delayed reporting; tactical advice without        ┃
+┃    strategic context.                                                                  ┃
+┃  • Motivations: Career advancement; measurable success; minimizing risk; finding a     ┃
+┃    reliable, long-term partner.                                                        ┃
+┃                                                                                        ┃
+┃ Content Preferences:                                                                   ┃
+┃                                                                                        ┃
+┃  • Channels: LinkedIn (primary), Industry Newsletters.                                 ┃
+┃  • Formats: Data-rich case studies, quantitative benchmarks, "How-to" guides for       ┃
+┃    specific marketing tech (MarTech), and quick-read "Myth vs. Fact" posts.            ┃
+┃                                                                                        ┃
+┃                   2. The Founder/SMB Owner - "The Growth Visionary"                    ┃
+┃                                                                                        ┃
+┃ Quote: "My brand needs a strong, professional online presence, but I can't afford to   ┃
+┃ burn six months and six figures on an agency that just gives me polish, not momentum." ┃
+┃                                                                                        ┃
+┃ Demographics:\                                                                         ┃
+┃                                                                                        ┃
+┃  • Role: Founder, CEO, or Small Business Owner                                         ┃
+┃  • Industry: Tech Startups, High-Growth SMBs                                           ┃
+┃  • Experience: 2-10 years in business                                                  ┃
+┃                                                                                        ┃
+┃ Psychographics:                                                                        ┃
+┃                                                                                        ┃
+┃  • Goals: Achieve product-market fit; establish a compelling brand narrative; rapid,   ┃
+┃    scalable growth; free up time to focus on product development.                      ┃
+┃  • Pain Points: Fear of wasted budget; needing strategic direction before execution;   ┃
+┃    lack of internal marketing clarity; agencies focusing on their goals, not the       ┃
+┃    founder's vision.                                                                   ┃
+┃  • Motivations: Cost-efficiency; fast, measurable results ("data in days, not          ┃
+┃    quarters"); credibility and brand polish; simple, direct communication.             ┃
+┃                                                                                        ┃
+┃ Content Preferences:                                                                   ┃
+┃                                                                                        ┃
+┃  • Channels: LinkedIn, Founder/Venture Capital (VC) blogs.                             ┃
+┃  • Formats: Strategic frameworks, "Lessons Learned" from IKF’s 25 years, quick-take    ┃
+┃    videos, and founder-to-founder advice (often delivered by IKF's leadership).        ┃
+┃                                                                                        ┃
+┃ ────────────────────────────────────────────────────────────────────────────────────── ┃
+┃                        ⚔️ Competitive Landscape (LinkedIn Focus)                        ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                                             Top Performing                             ┃
+┃   Competitor          Key Strategy          Content               Weakness/Gap         ┃
+┃  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ┃
+┃   Groovy Web          Development-focuse…   Carousels detailing   Lacks deep digital   ┃
+┃                       Targets product       complex tech stacks   marketing strategy   ┃
+┃                       growth and tech       (e.g., "MERN Stack    content; less        ┃
+┃                       innovation.           Explained");          authoritative        ┃
+┃                                             Employee culture      voice on CRO/SEO.    ┃
+┃                                             posts.                                     ┃
+┃   WebFX (US/Global)   Aggressive            Infographics on       Less localized for   ┃
+┃                       data-driven           industry CTR/CPL      the Indian market    ┃
+┃                       content; focuses on   benchmarks;           pain points;         ┃
+┃                       global SEO/PPC        long-form data        sometimes too        ┃
+┃                       benchmarks and        reports.              generic/US-centric   ┃
+┃                       proprietary tools.                          strategies.          ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃ Strategic Opportunity: The Strategic Longevity Gap. IKF can win by leveraging its 25   ┃
+┃ years of experience, which none of the direct competitors highlight. Groovy Web is too ┃
+┃ technical; WebFX is too global/benchmark-driven. IKF needs to combine strategy with    ┃
+┃ trust and adaptability.                                                                ┃
+┃                                                                                        ┃
+┃ IKF's Differentiator: Position IKF as the strategic partner who survived all major     ┃
+┃ digital shifts (Dot-Com boom, Mobile, Social, AI) and knows which "quick fixes" fail   ┃
+┃ long-term.                                                                             ┃
+┃                                                                                        ┃
+┃ ────────────────────────────────────────────────────────────────────────────────────── ┃
+┃                        💡 Content Strategy & Pillars (LinkedIn)                        ┃
+┃                                                                                        ┃
+┃ Goal: Drive lead generation (via high-value CTAs) and establish brand awareness (via   ┃
+┃ thought leadership).                                                                   ┃
+┃                                                                                        ┃
+┃                                   1. Content Pillars                                   ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃   Pillar               Focus                Audience Alignment    IKF Expertise        ┃
+┃  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ┃
+┃   Pillar 1: Proven     Strategic            Marketing Managers    25 Years of          ┃
+┃   Strategy, Not Just   frameworks and       & Founders            strategic advisory   ┃
+┃   Tactics              planning to solve                          and blending         ┃
+┃                        the "lack of clear                         multiple services    ┃
+┃                        strategy" pain                             (Web/Digital/App).   ┃
+┃                        point.                                                          ┃
+┃   Pillar 2: The        Concrete data,       Marketing Managers    Performance          ┃
+┃   ROI-Centric Report   reporting                                  Marketing            ┃
+┃                        transparency, and                          expertise and        ┃
+┃                        proving the                                data-driven          ┃
+┃                        business value of                          approach.            ┃
+┃                        digital spending.                                               ┃
+┃   Pillar 3: The        High-level thought   Founders & Senior     IKF's unique         ┃
+┃   25-Year Digital      leadership on        Management            longevity and        ┃
+┃   Resilience           digital shifts,                            adaptation           ┃
+┃   Playbook             technology                                 capabilities.        ┃
+┃                        integration (AI),                                               ┃
+┃                        and                                                             ┃
+┃                        future-proofing                                                 ┃
+┃                        the business.                                                   ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                              2. LinkedIn Platform Tactics                              ┃
+┃                                                                                        ┃
+┃  • Content Mix Ratio:                                                                  ┃
+┃     • Educational/Value (Pillars 1 & 2): 60%                                           ┃
+┃     • Thought Leadership/Brand Building (Pillar 3): 25%                                ┃
+┃     • Promotional/Case Studies (Direct Lead Gen): 15%                                  ┃
+┃  • Format Focus: PDF Carousels (high dwell time) for Pillars 1 & 2; Text-Only          ┃
+┃    "Broetry" for Pillar 3 (Founder-style advice).                                      ┃
+┃  • Posting Cadence: 3x per week (Tuesday, Wednesday, Thursday) between 9:00 AM – 10:30 ┃
+┃    AM (IST).                                                                           ┃
+┃  • Lead Generation CTA: NEVER use a link in the post body. Use an explicit CTA like:   ┃
+┃    “Comment ‘REPORT’ below and I’ll DM you the full 10-Point Website Audit Checklist.” ┃
+┃                                                                                        ┃
+┃ ────────────────────────────────────────────────────────────────────────────────────── ┃
+┃                        📝 Content Ideation: 5 Posts Per Pillar                         ┃
+┃                                                                                        ┃
+┃                      Pillar 1: Proven Strategy, Not Just Tactics                       ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                                             Hook Example                               ┃
+┃   Post Idea            Format               (Text-Only Style)    CTA                   ┃
+┃  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ┃
+┃   1. The 3 Stages of   Carousel (10         "You hired an        Slide 10: "Download   ┃
+┃   Digital Marketing    slides)              agency for social    our 'Strategic        ┃
+┃   You Can't Skip                            ads. They’re         Readiness'            ┃
+┃                                             running them. But    assessment (Link in   ┃
+┃                                             your revenue is      comments)."           ┃
+┃                                             flat. The problem?                         ┃
+┃                                             You skipped Stage                          ┃
+┃                                             1."                                        ┃
+┃   2. Why Your Agency   Text-Only            "The #1 lie          Comment with your     ┃
+┃   Thinks Strategy is                        agencies tell        biggest strategy      ┃
+┃   a Tactic                                  founders: 'We have   flaw for a quick      ┃
+┃                                             a strategy.'         audit.                ┃
+┃                                             Strategy is not                            ┃
+┃                                             'run ads for 3                             ┃
+┃                                             months.' It's                              ┃
+┃                                             knowing which 3                            ┃
+┃                                             channels to ignore                         ┃
+┃                                             completely."                               ┃
+┃   3. Blueprint: From   Short Video (1       IKF Leader           Link to a Website     ┃
+┃   Website Redesign     min)                 on-camera: "Stop     Design case study     ┃
+┃   to Revenue Engine                         designing for        in the comments.      ┃
+┃                                             awards. Design for                         ┃
+┃                                             conversion. We see                         ┃
+┃                                             90% of sites fail                          ┃
+┃                                             this test."                                ┃
+┃   4. The SaaS          Carousel (8          You're burning       Offer a 15-minute     ┃
+┃   Founder's            slides)              $10k/month on ads.   free strategy         ┃
+┃   Strategy-First                            Before you           session (Link in      ┃
+┃   Checklist                                 increase the         comments).            ┃
+┃                                             budget, check                              ┃
+┃                                             these 5                                    ┃
+┃                                             non-negotiables."                          ┃
+┃   5. The 5 Critical    Text-Only            "A good agency       Ask us anything       ┃
+┃   Questions to Ask                          will answer these    about our process     ┃
+┃   an Agency Before                          5 questions          in the comments.      ┃
+┃   Signing                                   without                                    ┃
+┃                                             hesitation. If                             ┃
+┃                                             they pause on #3,                          ┃
+┃                                             run."                                      ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                            Pillar 2: The ROI-Centric Report                            ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                                             Hook Example                               ┃
+┃   Post Idea            Format               (Text-Only Style)     CTA                  ┃
+┃  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ┃
+┃   1. Data Myth: Why    Text-Only            "Impressions don't    Comment "METRICS"    ┃
+┃   'High Impressions'                        pay the bills. Your   for a template of    ┃
+┃   is a Worthless                            agency is padding     a CEO-ready          ┃
+┃   Metric                                    their report. Here    marketing report.    ┃
+┃                                             are the 3 real                             ┃
+┃                                             metrics your CEO                           ┃
+┃                                             cares about."                              ┃
+┃   2. The Hidden Cost   Carousel (7          "A lead is not a      Link to a detailed   ┃
+┃   of Low-Quality       slides)              lead is not a lead.   Case Study on Lead   ┃
+┃   Website Leads                             We tracked 10,000     Scoring              ┃
+┃                                             leads. $5 vs. $500    Optimization.        ┃
+┃                                             leads. The                                 ┃
+┃                                             difference is in                           ┃
+┃                                             the funnel."                               ┃
+┃   3. The 3-Step        Text-Only            "Stop using the       Share the post       ┃
+┃   Performance                               agency’s dashboard.   with your            ┃
+┃   Marketing                                 Use this simple       Marketing Director   ┃
+┃   Reporting                                 3-step framework to   if reporting is a    ┃
+┃   Framework                                 instantly gauge       nightmare.           ┃
+┃                                             campaign health."                          ┃
+┃   4. Case Study        Carousel (8          How we took a         Comment "40%" for    ┃
+┃   Teardown: How        slides)              successful B2B site   a 1-page summary     ┃
+┃   [Client X]                                and boosted           of the tactical      ┃
+┃   achieved 40% CRO                          conversions by 40%    plan.                ┃
+┃                                             without touching                           ┃
+┃                                             the traffic                                ┃
+┃                                             source."                                   ┃
+┃   5. LinkedIn Ad       Infographic/Image    "India B2B LinkedIn   Offer a free         ┃
+┃   Benchmarks for                            Ads: The real         benchmark analysis   ┃
+┃   Indian B2B (IKF                           average CPL is        (Link in             ┃
+┃   Proprietary Data)                         ₹X,XXX. Is your       comments).           ┃
+┃                                             agency beating it?                         ┃
+┃                                             Our 2024                                   ┃
+┃                                             benchmarks."                               ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                   Pillar 3: The 25-Year Digital Resilience Playbook                    ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┃                                             Hook Example                               ┃
+┃   Post Idea            Format               (Text-Only Style)    CTA                   ┃
+┃  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ┃
+┃   1. The ONE Thing     Text-Only            IKF Founder Voice:   Invite followers to   ┃
+┃   That Makes Digital                        "We've been doing    connect with the      ┃
+┃   Agencies Fail                             this for 25 years.   IKF Founder           ┃
+┃   (Founder Voice)                           We've seen           directly.             ┃
+┃                                             hundreds of                                ┃
+┃                                             agencies start and                         ┃
+┃                                             fold. They all                             ┃
+┃                                             make the same                              ┃
+┃                                             mistake."                                  ┃
+┃   2. Longevity         Short Video (2       "Everyone is         Comment "AI" for      ┃
+┃   Lessons: What 25     min)                 talking about AI     our 2025 AI           ┃
+┃   Years Taught Us                           tools. We're         Integration           ┃
+┃   About AI                                  talking about AI     Strategy guide.       ┃
+┃                                             strategy. Here's                           ┃
+┃                                             the difference                             ┃
+┃                                             that matters for                           ┃
+┃                                             your business."                            ┃
+┃   3. When to Fire      Text-Only            "Firing an agency    Use a poll: "Have     ┃
+┃   Your Agency vs.                           is easy. Firing      you ever fired an     ┃
+┃   When to Fix the                           one at the wrong     agency?" (Yes/No).    ┃
+┃   Partnership                               time can kill a                            ┃
+┃                                             project. Here is                           ┃
+┃                                             the 3-point                                ┃
+┃                                             checklist for                              ┃
+┃                                             founders."                                 ┃
+┃   4. The               Carousel (6          "Your website is     Link to IKF's Web     ┃
+┃   'Non-Negotiable'     slides)              the foundation. Is   Development           ┃
+┃   for                                       it built on sand?    services.             ┃
+┃   Future-Proofing                           If you ignore this                         ┃
+┃   Your Website                              one thing, you'll                          ┃
+┃                                             be rebuilding                              ┃
+┃                                             every 2 years."                            ┃
+┃   5. Why We Turned     Text-Only            "We had a client     High-engagement,      ┃
+┃   Down a $100k         (Vulnerability       come in with a       brand-building        ┃
+┃   Project (A           Post)                massive budget and   post. End with a      ┃
+┃   Transparency Post)                        a flawed vision.     simple,               ┃
+┃                                             We said no. Here's   values-driven         ┃
+┃                                             why transparency     statement.            ┃
+┃                                             saves both the                             ┃
+┃                                             agency and the                             ┃
+┃                                             client."                                   ┃
+┃                                                                                        ┃
+┃                                                                                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+User: 
