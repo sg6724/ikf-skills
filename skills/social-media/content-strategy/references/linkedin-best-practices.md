@@ -1,6 +1,6 @@
 # LinkedIn Content Best Practices
 
-## Algorithm Signals (2025)
+## Algorithm Signals (2026)
 *   **Dwell Time**: Length of time spent on a post is crucial. Long-form text and carousels work best.
 *   **Comments**: Early comments (first 60 mins) boost reach significantly.
 *   **No Outlinks**: Links in comments are better than links in the post body (which penalty reach).

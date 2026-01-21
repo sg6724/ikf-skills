@@ -1,5 +1,5 @@
 """
-Custom tools for the Social Media Agent.
+Document generation tools.
 """
 
 from pathlib import Path
@@ -8,8 +8,8 @@ from agno.tools import tool
 
 @tool(
     name="generate_word_document",
-    description="Generate a Word (.docx) document from markdown content. Use this after creating a hygiene check report to save it as a Word file.",
-    show_result=True
+    description="Generate a Word (.docx) document from markdown content. Use after creating a report or deliverable to safe it as a Word file.",
+    show_result=False
 )
 def generate_word_document(content: str, output_file: str, title: str = None) -> str:
     """
@@ -24,14 +24,14 @@ def generate_word_document(content: str, output_file: str, title: str = None) ->
         str: Absolute path to the generated Word document
     """
     import importlib.util
-    from pathlib import Path
     
-    # Get absolute path to generator.py
     current_dir = Path(__file__).resolve().parent
-    project_root = current_dir.parent.parent.parent
+    project_root = current_dir.parent.parent.parent.parent
     generator_path = project_root / "skills" / "general" / "docxmaker" / "scripts" / "generator.py"
     
-    # Load the module dynamically
+    if not generator_path.exists():
+        return f"Error: Document generator not found at {generator_path}"
+    
     spec = importlib.util.spec_from_file_location("generator", generator_path)
     generator_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator_module)
@@ -42,7 +42,7 @@ def generate_word_document(content: str, output_file: str, title: str = None) ->
             output_file=output_file,
             title=title
         )
-        return f"Document successfully generated at: {file_path}"
+        return f"Document generated at: {file_path}"
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
