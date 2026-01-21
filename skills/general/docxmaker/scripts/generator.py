@@ -67,10 +67,45 @@ def create_docx_from_markdown(
             doc.add_heading(line[5:], level=4)
         
         # Horizontal rule
-        elif line.startswith('---'):
+        elif line.startswith('---') and not line.startswith('---|'):
             p = doc.add_paragraph()
             p.paragraph_format.space_before = Pt(6)
             p.paragraph_format.space_after = Pt(6)
+        
+        # Markdown table detection
+        elif line.startswith('|') and line.endswith('|'):
+            # Collect all table rows
+            table_lines = []
+            while i < len(lines) and lines[i].strip().startswith('|') and lines[i].strip().endswith('|'):
+                table_lines.append(lines[i].strip())
+                i += 1
+            i -= 1  # Back up one since we'll increment at end of loop
+            
+            # Parse table rows
+            rows = []
+            for tline in table_lines:
+                # Skip separator rows (|---|---|)
+                if re.match(r'^\|[\s\-:]+\|$', tline.replace('|', '|').replace(' ', '')):
+                    continue
+                # Parse cells
+                cells = [cell.strip() for cell in tline.split('|')[1:-1]]
+                if cells:
+                    rows.append(cells)
+            
+            # Create Word table if we have data
+            if rows:
+                num_cols = max(len(row) for row in rows)
+                table = doc.add_table(rows=len(rows), cols=num_cols)
+                table.style = 'Table Grid'
+                
+                for row_idx, row_data in enumerate(rows):
+                    for col_idx, cell_text in enumerate(row_data):
+                        if col_idx < num_cols:
+                            cell = table.rows[row_idx].cells[col_idx]
+                            cell.text = _format_inline_markdown(cell_text)
+                
+                # Add some space after table
+                doc.add_paragraph()
         
         # Bullet lists
         elif line.startswith('- ') or line.startswith('* '):

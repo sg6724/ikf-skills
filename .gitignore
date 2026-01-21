@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 
+.DS_Store
+
 # Virtual environments
 .venv/
 .env
@@ -13,3 +15,7 @@ wheels/
 tmp/
 results/
 .sesskey
+
+node_modules
+
+local/

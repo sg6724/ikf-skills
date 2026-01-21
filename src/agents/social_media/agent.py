@@ -71,16 +71,38 @@ def create_agent() -> Agent:
               </skill>
             </available_skills>
 
-            ### CRITICAL CONSTRAINTS
-            - **NO TAVILY BEFORE CLARITY**: You MUST NOT call `web_search_using_tavily` until you have complete context
+            ### CRITICAL CONSTRAINTS - READ BEFORE EVERY ACTION
+            
+            **ABSOLUTE PROHIBITION: NO WEB SEARCH BEFORE FULL CLARITY**
+            - You MUST NOT call `web_search_using_tavily` or `extract_url_content` as your FIRST action
+            - ALWAYS ask clarifying questions FIRST, THEN use tools after user responds
+            - If user says "hygiene check for company.com" → ASK which platforms and get URLs/screenshots FIRST
+            - If user says "content strategy for XYZ" → ASK for website URL, target platform, goals FIRST
+            - NEVER assume or search for social media URLs - the USER must provide them
+            
+            **Other Constraints:**
             - **ALWAYS USE NUMBERED LISTS**: When asking clarifying questions, ALWAYS use numbered lists. NEVER use tables for questions.
-            - **ASK FOR DIRECT LINKS**: For hygiene checks, always ask for direct social media page URLs (not company name)
+            - **PLATFORM-SPECIFIC DATA COLLECTION**: For hygiene checks, use different methods per platform (see Intake section)
 
             ### Workflow
             1.  **Intake & Clarification**: 
-                *   When the user requests a hygiene check, ask for:
-                    - **Direct social media page URLs** (e.g., "linkedin.com/company/ikfdigital", "facebook.com/ikfdigital", "instagram.com/ikfdigital")
-                *   If they only provide company name, ask: "What are the direct URLs to the social media pages you want me to audit?"
+                *   When the user requests a hygiene check, first identify which platform(s) they want audited, then:
+                
+                    **For LinkedIn:**
+                    - Ask for the **direct LinkedIn page URL** (e.g., "linkedin.com/company/ikfdigital")
+                    - LinkedIn pages are publicly accessible, so use `extract_content_from_url` to get data
+                    
+                    **For Instagram or Facebook:**
+                    - These platforms show a sign-in modal that blocks data extraction
+                    - Ask the user to provide a **screenshot of their profile page**
+                    - Specify what the screenshot should include:
+                      1. Profile header with profile picture and cover image
+                      2. Bio/About section with full text visible
+                      3. Highlights/Story covers (for Instagram)
+                      4. A few recent posts visible in the grid
+                    - Use your vision capabilities to analyze the screenshot and extract profile information
+                
+                *   If they only provide company name, ask: "Which platforms do you want me to audit? For LinkedIn I'll need the URL, for Instagram/Facebook please share a screenshot of your profile."
                 *   For content strategy, if given a vague company name (e.g., "IKF", "SOPAN"), ask for:
                     - Full website URL or complete company name
                     - Target Platform, Key Goals, Known Audience
@@ -147,18 +169,57 @@ def create_agent() -> Agent:
     )
 
 if __name__ == "__main__":
+    import re
+    from pathlib import Path
+    from agno.media import Image
+    
     agent = create_agent()
     
     print("\n--- Social Media Agent Initialized ---")
     print("Example: 'Create a strategy for Notion (notion.so)' or 'Run a hygiene check for ikf.co.in'")
+    print("Tip: For Instagram/Facebook hygiene checks, include image paths in your message.")
+    
+    def extract_images_from_input(text: str) -> tuple[str, list[Image]]:
+        """Extract image file paths from input text and return cleaned text + Image objects."""
+        image_extensions = ('.png', '.jpg', '.jpeg', '.webp')
+        words = text.split()
+        images = []
+        text_parts = []
+        
+        for word in words:
+            # Check if word looks like an image path
+            if word.lower().endswith(image_extensions):
+                # Try to resolve the path
+                path = Path(word).expanduser()
+                if path.exists():
+                    print(f"📷 Loading image: {path}")
+                    images.append(Image(filepath=str(path)))
+                else:
+                    # Keep it in text if file doesn't exist
+                    text_parts.append(word)
+            else:
+                text_parts.append(word)
+        
+        return ' '.join(text_parts), images
     
     while True:
         try:
-            user_input = input("\nUser: ")
+            user_input = input("\nUser: ").strip()
             if user_input.lower() in ["exit", "quit"]:
                 break
-            agent.print_response(user_input, stream=True)
+            
+            # Extract any image paths from the input
+            cleaned_text, images = extract_images_from_input(user_input)
+            
+            if images:
+                # If we found images, pass them to the agent
+                message = cleaned_text if cleaned_text.strip() else "Please analyze these profile screenshots for the hygiene check."
+                agent.print_response(message, images=images, stream=True)
+            else:
+                agent.print_response(user_input, stream=True)
         except KeyboardInterrupt:
             break
         except Exception as e:
             print(f"Error: {e}")
+
+

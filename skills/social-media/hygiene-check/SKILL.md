@@ -15,18 +15,27 @@ Use this skill to audit a client's social media presence and generate a comprehe
    - Understand brand context (industry, target audience, current tone)
 
 2. **Platform-Specific Content Extraction**
-   - For each platform, load the appropriate checklist:
-     - `get_skill_reference("hygiene-check", "references/linkedin-checklist.md")`
-     - `get_skill_reference("hygiene-check", "references/facebook-checklist.md")`
+   
+   **For LinkedIn:**
+   - Load the checklist: `get_skill_reference("hygiene-check", "references/linkedin-checklist.md")`
+   - Use `extract_content_from_url` with the LinkedIn URL (works without login)
+   - Extract real bio, about section, tagline, and visible profile elements
+   
+   **For Instagram or Facebook:**
+   - Load the appropriate checklist:
      - `get_skill_reference("hygiene-check", "references/instagram-checklist.md")`
+     - `get_skill_reference("hygiene-check", "references/facebook-checklist.md")`
+   - **DO NOT use extract API** - these platforms block extraction with sign-in modals
+   - **Use the screenshot provided by the user**
+   - Analyze the screenshot using vision capabilities to extract:
+     - Bio/About section text (read it from the image)
+     - Profile picture & cover image quality assessment
+     - Story highlights/covers (for Instagram)
+     - Recent post samples and engagement visible
+   - Quote visible text from the screenshot in your analysis
    
-   - **CRITICAL: Use Tavily Extract API to get actual page content**
-     - Call `extract_content_from_url` with each social media URL
-     - Extract real bio, about section, tagline, and visible profile elements
-     - DO NOT make web searches - extract content directly from URLs
-   
-   - **Analyze extracted content against checklist**:
-     - Bio/About section (actual text from page)
+   - **Analyze extracted/visible content against checklist**:
+     - Bio/About section (actual text from page or screenshot)
      - Profile picture & cover image (presence/quality)
      - Contact information completeness
      - Content highlights (actual posts/content visible)
@@ -71,11 +80,13 @@ Use this skill to audit a client's social media presence and generate a comprehe
 
 ## Critical Rules
 
-1. **NO WEB SEARCHES** - Use `extract_content_from_url` only
-2. **FACT-BASED ONLY** - Quote actual content extracted from pages
+1. **PLATFORM-SPECIFIC DATA COLLECTION**:
+   - LinkedIn: Use `extract_content_from_url` (works without login)
+   - Instagram/Facebook: Use screenshot + vision analysis (extract API blocked by sign-in modal)
+2. **FACT-BASED ONLY** - Quote actual content extracted from pages or visible in screenshots
 3. **SIMPLE FORMAT** - Follow the template exactly, keep it clean like the sample
 4. **GENERATE .DOCX** - Import and call the generator directly, provide file path
-5. **IMAGES ENABLED** - Tavily extract will include images for visual analysis
+5. **VISION ANALYSIS** - For screenshots, read and quote visible text directly from the image
 
 ## Output Format
 
