@@ -28,7 +28,7 @@ from agno.agent import Agent
 from agno.media import Image
 from agno.models.google import Gemini
 from agno.tools.nano_banana import NanoBananaTools
-from agno.db.sqlite import SqliteDb
+from agno.db.postgres import PostgresDb
 
 from tools import (
     discover_agents,
@@ -47,7 +47,7 @@ def create_agent() -> Agent:
     
     return Agent(
         name="IKF Harness",
-        model=Gemini(id="gemini-flash-latest"),
+        model=Gemini(id="gemini-3-pro-preview"),
         description="IKF's harness AI agent that can assume any domain expert role.",
         instructions=dedent("""
             You are IKF's universal agent. You can assume the role of any domain expert by loading their profile.
@@ -178,7 +178,10 @@ def create_agent() -> Agent:
             NanoBananaTools(aspect_ratio="1:1"),
             NanoBananaTools(aspect_ratio="9:16"),
         ],
-        db=SqliteDb(db_file="tmp/harness_sessions.db"),
+        db=PostgresDb(
+            db_url=os.getenv("SUPABASE_DB_URL"),
+            session_table="agent_sessions"
+        ),
         add_history_to_context=True,
         markdown=True,
     )

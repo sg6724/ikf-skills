@@ -8,8 +8,8 @@ from agno.tools import tool
 import yaml
 
 
-# Skills directory at project root
-SKILLS_BASE = Path(__file__).resolve().parent.parent.parent.parent.parent / "skills"
+# Skills directory at backend root (backend/skills/)
+SKILLS_BASE = Path(__file__).resolve().parent.parent.parent.parent / "skills"
 
 
 def _parse_skill_frontmatter(content: str) -> dict:
@@ -61,7 +61,7 @@ def discover_skills(domains: list[str] = None) -> str:
             if not skill_md.exists():
                 continue
                 
-            content = skill_md.read_text()
+            content = skill_md.read_text(encoding='utf-8')
             metadata = _parse_skill_frontmatter(content)
             
             skills.append({
@@ -117,7 +117,7 @@ def get_skill_instructions(skill_name: str, domains: list[str] = None) -> str:
     for domain in domains:
         skill_path = SKILLS_BASE / domain / skill_name / "SKILL.md"
         if skill_path.exists():
-            return skill_path.read_text()
+            return skill_path.read_text(encoding='utf-8')
     
     return f"Error: Skill '{skill_name}' not found in domains: {domains}"
 
@@ -149,6 +149,6 @@ def get_skill_reference(skill_name: str, ref_path: str, domains: list[str] = Non
     for domain in domains:
         full_path = SKILLS_BASE / domain / skill_name / ref_path
         if full_path.exists():
-            return full_path.read_text()
+            return full_path.read_text(encoding='utf-8')
     
     return f"Error: Reference '{ref_path}' not found in skill '{skill_name}'"

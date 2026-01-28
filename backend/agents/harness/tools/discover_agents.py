@@ -8,8 +8,8 @@ from agno.tools import tool
 import yaml
 
 
-# Agents directory at project root
-AGENTS_BASE = Path(__file__).resolve().parent.parent.parent.parent.parent / "agents"
+# Agents directory at backend root (backend/agents/)
+AGENTS_BASE = Path(__file__).resolve().parent.parent.parent.parent / "agents"
 
 
 def _parse_agent_frontmatter(content: str) -> dict:
@@ -46,7 +46,7 @@ def discover_agents() -> str:
         if not agents_md.exists():
             continue
             
-        content = agents_md.read_text()
+        content = agents_md.read_text(encoding='utf-8')
         metadata = _parse_agent_frontmatter(content)
         
         agents.append({
@@ -99,10 +99,10 @@ def get_agent_profile(agent_name: str) -> str:
         
         # Match by directory name
         if agent_dir.name == agent_name or agent_dir.name == agent_name.replace("-agent", ""):
-            return agents_md.read_text()
+            return agents_md.read_text(encoding='utf-8')
         
         # Match by name in frontmatter
-        content = agents_md.read_text()
+        content = agents_md.read_text(encoding='utf-8')
         metadata = _parse_agent_frontmatter(content)
         if metadata.get("name") == agent_name:
             return content
