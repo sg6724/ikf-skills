@@ -8,8 +8,8 @@ from agno.tools import tool
 import yaml
 
 
-# Skills directory at backend root (backend/skills/)
-SKILLS_BASE = Path(__file__).resolve().parent.parent.parent.parent / "skills"
+# Skills directory at project root
+SKILLS_BASE = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "skills"
 
 
 def _parse_skill_frontmatter(content: str) -> dict:

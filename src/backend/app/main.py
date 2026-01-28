@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     print(f"📚 API Docs: http://localhost:{settings.port}/docs")
     
     # Ensure required directories exist
-    Path("tmp").mkdir(exist_ok=True)
+    # Ensure artifact directory exists
     Path("artifacts").mkdir(exist_ok=True)
     
     yield

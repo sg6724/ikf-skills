@@ -26,7 +26,7 @@ def generate_word_document(content: str, output_file: str, title: str = None) ->
     import importlib.util
     
     current_dir = Path(__file__).resolve().parent
-    project_root = current_dir.parent.parent.parent.parent
+    project_root = current_dir.parent.parent.parent.parent.parent
     generator_path = project_root / "skills" / "general" / "docxmaker" / "scripts" / "generator.py"
     
     if not generator_path.exists():

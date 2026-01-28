@@ -8,8 +8,8 @@ from agno.tools import tool
 import yaml
 
 
-# Agents directory at backend root (backend/agents/)
-AGENTS_BASE = Path(__file__).resolve().parent.parent.parent.parent / "agents"
+# Agents directory at project root
+AGENTS_BASE = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "agents"
 
 
 def _parse_agent_frontmatter(content: str) -> dict:

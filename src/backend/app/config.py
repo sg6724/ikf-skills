@@ -26,8 +26,7 @@ class Settings(BaseSettings):
     supabase_anon_key: Optional[str] = None
     supabase_db_url: Optional[str] = None  # PostgreSQL connection URL for Agno
     
-    # Database - SQLite for sessions (legacy, Agno agent only)
-    sqlite_db_path: str = "tmp/ikf_sessions.db"
+
     
     # Firestore (stub for future)
     firestore_project_id: Optional[str] = None

@@ -20,7 +20,7 @@ from app.agent_factory import create_agent
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 # Artifacts directory
-ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "artifacts"
+ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "artifacts"
 
 
 class ChatRequest(BaseModel):
