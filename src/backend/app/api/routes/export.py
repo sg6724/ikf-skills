@@ -316,7 +316,7 @@ def markdown_to_pdf(content: str) -> io.BytesIO:
 
 
 @router.post("")
-async def export_content(request: ExportRequest):
+def export_content(request: ExportRequest):
     """
     Export markdown content to DOCX, PDF, or XLSX format.
     

@@ -8,8 +8,12 @@ Stores conversations and messages with artifact references.
 import json
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from dataclasses import dataclass
+from collections import defaultdict
+import threading
+import os
+import time
 
 from supabase import create_client, Client
 
@@ -66,20 +70,18 @@ class ConversationDB:
         Create a new conversation.
         
         Args:
-            title: Optional title. If not provided, auto-generates using LLM
-            first_message: First user message, used for auto-title generation
+            title: Optional title. If not provided, uses first message (truncated)
+            first_message: First user message, used for title if title not provided
             
         Returns:
             Conversation ID
         """
         conv_id = f"conv_{uuid.uuid4().hex[:12]}"
         now = datetime.utcnow().isoformat()
-        
-        # Auto-generate title from first message using LLM
-        if not title and first_message:
-            title = self._generate_smart_title(first_message)
-        elif not title:
-            title = "New Conversation"
+
+        # Use first message as title (truncated) - no AI generation
+        if not title:
+            title = self._fallback_title(first_message) if first_message else "New Conversation"
         
         self.client.table("conversations").insert({
             "id": conv_id,
@@ -89,6 +91,24 @@ class ConversationDB:
         }).execute()
         
         return conv_id
+
+    def _update_conversation_title_safe(self, conversation_id: str, first_message: str) -> None:
+        """
+        Best-effort async title update. Never raise - this runs off the request path.
+        """
+        try:
+            title = self._generate_smart_title(first_message)
+            if not title:
+                return
+            # Use a fresh client to avoid sharing HTTP state across threads.
+            client = create_client(settings.supabase_url, settings.supabase_anon_key)
+            client.table("conversations")\
+                .update({"title": title})\
+                .eq("id", conversation_id)\
+                .execute()
+        except Exception as e:
+            # Avoid noisy logs in production. If you want to debug, add a logger here.
+            return
     
     def _generate_smart_title(self, message: str) -> str:
         """
@@ -137,47 +157,70 @@ Title:"""
             title += "..."
         return title
     
-    def list_conversations(self, limit: int = 50, offset: int = 0) -> List[ConversationSummary]:
+    def list_conversations(self, limit: int = 50, offset: int = 0) -> Tuple[List[ConversationSummary], int]:
         """
         List all conversations, most recent first.
         
         Returns list of ConversationSummary with preview from last message.
         """
-        # Get conversations
+        timing_on = os.getenv("IKF_TIMING_LOGS") == "1"
+        t0 = time.perf_counter() if timing_on else 0.0
+
+        # Fetch the conversation page + total count in one request.
         response = self.client.table("conversations")\
-            .select("*")\
+            .select("*", count="exact")\
             .order("updated_at", desc=True)\
             .range(offset, offset + limit - 1)\
             .execute()
-        
-        summaries = []
-        for row in response.data:
-            # Get last message for preview
-            msg_response = self.client.table("messages")\
-                .select("content")\
-                .eq("conversation_id", row["id"])\
-                .order("created_at", desc=True)\
-                .limit(1)\
-                .execute()
-            
-            last_content = msg_response.data[0]["content"] if msg_response.data else ""
-            
-            # Get message count
-            count_response = self.client.table("messages")\
-                .select("id", count="exact")\
-                .eq("conversation_id", row["id"])\
-                .execute()
-            
+        t_conv = (time.perf_counter() - t0) if timing_on else 0.0
+
+        conv_rows = response.data or []
+        total = response.count if response.count is not None else len(conv_rows)
+        if not conv_rows:
+            return [], total
+
+        # IMPORTANT: Avoid N+1 requests. Fetch all messages for the page of conversations
+        # in a single query, then compute last-message preview and message counts locally.
+        conv_ids = [row["id"] for row in conv_rows]
+        msg_response = self.client.table("messages")\
+            .select("conversation_id, content, created_at")\
+            .in_("conversation_id", conv_ids)\
+            .order("created_at", desc=True)\
+            .execute()
+        t_msgs = (time.perf_counter() - t0 - t_conv) if timing_on else 0.0
+
+        last_content_by_conv = {}
+        message_count_by_conv = defaultdict(int)
+        for msg in (msg_response.data or []):
+            conv_id = msg.get("conversation_id")
+            if not conv_id:
+                continue
+            message_count_by_conv[conv_id] += 1
+            if conv_id not in last_content_by_conv:
+                last_content_by_conv[conv_id] = msg.get("content") or ""
+
+        summaries: List[ConversationSummary] = []
+        for row in conv_rows:
+            cid = row["id"]
+            last_content = last_content_by_conv.get(cid, "")
             summaries.append(ConversationSummary(
-                id=row["id"],
+                id=cid,
                 title=row["title"],
                 preview=last_content[:100] if last_content else "",
-                message_count=count_response.count or 0,
+                message_count=int(message_count_by_conv.get(cid, 0)),
                 created_at=row["created_at"],
                 updated_at=row["updated_at"]
             ))
-        
-        return summaries
+
+        if timing_on:
+            t_total = time.perf_counter() - t0
+            print(
+                "timing list_conversations:"
+                f" convs={len(conv_rows)} msgs={len(msg_response.data or [])}"
+                f" conv_fetch={t_conv:.3f}s msgs_fetch={t_msgs:.3f}s total={t_total:.3f}s"
+            )
+
+        return summaries, total
     
     def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
         """
@@ -259,7 +302,8 @@ Title:"""
         role: str,
         content: str,
         thinking_steps: Optional[List[dict]] = None,
-        artifacts: Optional[List[dict]] = None
+        artifacts: Optional[List[dict]] = None,
+        update_conversation_updated_at: bool = True,
     ) -> str:
         """
         Add a message to a conversation.
@@ -288,10 +332,11 @@ Title:"""
         }).execute()
         
         # Update conversation's updated_at
-        self.client.table("conversations")\
-            .update({"updated_at": now})\
-            .eq("id", conversation_id)\
-            .execute()
+        if update_conversation_updated_at:
+            self.client.table("conversations")\
+                .update({"updated_at": now})\
+                .eq("id", conversation_id)\
+                .execute()
         
         return message_id
     

@@ -22,7 +22,7 @@ ALLOWED_EXTENSIONS = {'.docx', '.xlsx', '.pdf', '.png', '.jpg', '.jpeg', '.webp'
 
 
 @router.get("/{conversation_id}/{filename}")
-async def get_artifact(conversation_id: str, filename: str):
+def get_artifact(conversation_id: str, filename: str):
     """
     Download a generated artifact file.
     
@@ -76,7 +76,7 @@ async def get_artifact(conversation_id: str, filename: str):
 
 
 @router.get("/{conversation_id}")
-async def list_artifacts(conversation_id: str):
+def list_artifacts(conversation_id: str):
     """
     List all artifacts for a conversation.
     
@@ -108,7 +108,7 @@ async def list_artifacts(conversation_id: str):
 
 
 @router.get("")
-async def list_all_artifacts(limit: int = 50):
+def list_all_artifacts(limit: int = 50):
     """
     List all artifacts across all conversations, sorted by newest first.
     
