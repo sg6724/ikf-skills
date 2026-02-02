@@ -4,8 +4,9 @@ import * as React from 'react';
 import { useConversation } from '@/hooks/use-conversation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusIcon, MessageSquareIcon, TrashIcon, PanelLeft, SquarePen, Sparkles, Hand } from 'lucide-react';
+import { PlusIcon, MessageSquareIcon, TrashIcon, PanelLeft, SquarePen, Sparkles, Hand, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SettingsModal } from '@/components/settings-modal';
 
 interface SidebarProps {
     isExpanded: boolean;
@@ -19,6 +20,8 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
         setActiveConversation,
         refreshConversations,
     } = useConversation();
+
+    const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
     const handleNewChat = () => {
         setActiveConversation(null);
@@ -168,11 +171,24 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
                 </div>
             </ScrollArea>
 
-            {isExpanded && (
-                <div className="p-4 border-t text-[10px] uppercase font-bold tracking-widest text-muted-foreground/50 shrink-0 text-center">
-                    IKF AI
-                </div>
-            )}
+            <div className="p-3 mt-auto">
+                <Button
+                    variant="ghost"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className={cn(
+                        "w-full justify-start gap-3 px-3 h-10 transition-colors hover:bg-foreground/5",
+                        !isExpanded && "justify-center px-0"
+                    )}
+                >
+                    <Settings className="size-4 shrink-0" />
+                    {isExpanded && <span className="font-normal text-[14px]">Settings</span>}
+                </Button>
+            </div>
+
+            <SettingsModal
+                open={isSettingsOpen}
+                onOpenChange={setIsSettingsOpen}
+            />
         </div>
     );
 }
