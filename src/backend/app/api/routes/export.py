@@ -247,9 +247,28 @@ def markdown_to_pdf(content: str) -> io.BytesIO:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_left_margin(15)
+    pdf.set_right_margin(15)
     
-    # Set default font
+    # Set default font - use built-in font with latin-1 encoding for safety
     pdf.set_font("Helvetica", size=11)
+    
+    # Calculate effective width
+    effective_width = pdf.w - pdf.l_margin - pdf.r_margin
+    
+    def safe_text(text: str) -> str:
+        """Encode text safely for PDF, replacing unsupported characters."""
+        # Replace common unicode characters with ASCII equivalents
+        replacements = {
+            '"': '"', '"': '"', ''': "'", ''': "'",
+            '–': '-', '—': '-', '…': '...', '•': '*',
+            '→': '->', '←': '<-', '↔': '<->',
+            '✓': '[x]', '✗': '[ ]', '✔': '[x]',
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        # Encode to latin-1, replacing unknown chars
+        return text.encode('latin-1', errors='replace').decode('latin-1')
     
     lines = content.split('\n')
     
@@ -261,25 +280,25 @@ def markdown_to_pdf(content: str) -> io.BytesIO:
         # Headers
         if line.startswith('### '):
             pdf.set_font("Helvetica", 'B', 12)
-            pdf.multi_cell(0, 7, line[4:])
+            pdf.multi_cell(effective_width, 7, safe_text(line[4:]))
             pdf.set_font("Helvetica", size=11)
         elif line.startswith('## '):
             pdf.set_font("Helvetica", 'B', 14)
-            pdf.multi_cell(0, 8, line[3:])
+            pdf.multi_cell(effective_width, 8, safe_text(line[3:]))
             pdf.set_font("Helvetica", size=11)
         elif line.startswith('# '):
             pdf.set_font("Helvetica", 'B', 16)
-            pdf.multi_cell(0, 10, line[2:])
+            pdf.multi_cell(effective_width, 10, safe_text(line[2:]))
             pdf.set_font("Helvetica", size=11)
         
         # Bullet points
         elif line.strip().startswith('- ') or line.strip().startswith('* '):
-            text = "  • " + line.strip()[2:]
-            pdf.multi_cell(0, 6, text)
+            text = "  * " + line.strip()[2:]
+            pdf.multi_cell(effective_width, 6, safe_text(text))
         
         # Numbered lists
         elif re.match(r'^\d+\.\s', line.strip()):
-            pdf.multi_cell(0, 6, "  " + line.strip())
+            pdf.multi_cell(effective_width, 6, safe_text("  " + line.strip()))
         
         # Regular text
         else:
@@ -287,7 +306,7 @@ def markdown_to_pdf(content: str) -> io.BytesIO:
             text = re.sub(r'\*\*(.*?)\*\*', r'\1', line)  # Bold
             text = re.sub(r'\*(.*?)\*', r'\1', text)      # Italic
             text = re.sub(r'`(.*?)`', r'\1', text)        # Code
-            pdf.multi_cell(0, 6, text)
+            pdf.multi_cell(effective_width, 6, safe_text(text))
     
     # Save to bytes
     buffer = io.BytesIO()

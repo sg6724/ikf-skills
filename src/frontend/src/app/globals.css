@@ -121,7 +121,27 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Force hide ALL Next.js Dev Tools & Indicators */
+nextjs-portal,
+#nextjs-dev-indicator,
+[data-nextjs-toast],
+[data-nextjs-toast-wrapper],
+.nextjs-toast-errors-parent,
+div[data-nextjs-gateway-nav],
+div[data-nextjs-route-announcer] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: fixed !important;
+  left: -9999px !important;
 }

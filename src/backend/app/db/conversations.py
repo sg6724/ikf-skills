@@ -66,7 +66,7 @@ class ConversationDB:
         Create a new conversation.
         
         Args:
-            title: Optional title. If not provided, auto-generates from first_message
+            title: Optional title. If not provided, auto-generates using LLM
             first_message: First user message, used for auto-title generation
             
         Returns:
@@ -75,12 +75,9 @@ class ConversationDB:
         conv_id = f"conv_{uuid.uuid4().hex[:12]}"
         now = datetime.utcnow().isoformat()
         
-        # Auto-generate title from first message
+        # Auto-generate title from first message using LLM
         if not title and first_message:
-            # Take first 50 chars, cut at word boundary
-            title = first_message[:50].rsplit(' ', 1)[0]
-            if len(first_message) > 50:
-                title += "..."
+            title = self._generate_smart_title(first_message)
         elif not title:
             title = "New Conversation"
         
@@ -92,6 +89,53 @@ class ConversationDB:
         }).execute()
         
         return conv_id
+    
+    def _generate_smart_title(self, message: str) -> str:
+        """
+        Generate a concise 2-3 word title for the conversation using Gemini.
+        Falls back to truncated message if LLM fails.
+        """
+        try:
+            from google import genai
+            import os
+            
+            # Configure Gemini
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY not set")
+            
+            client = genai.Client(api_key=api_key)
+            
+            prompt = f"""Generate a concise 2-3 word title summarizing this user message. 
+Just output the title, nothing else. No quotes, no explanation.
+
+User message: {message[:500]}
+
+Title:"""
+            
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
+            title = response.text.strip().strip('"').strip("'")
+            
+            # Ensure it's not too long
+            if len(title) > 40:
+                title = title[:40].rsplit(' ', 1)[0]
+            
+            return title if title else self._fallback_title(message)
+            
+        except Exception as e:
+            # Fallback to simple truncation if LLM fails
+            print(f"LLM title generation failed: {e}")
+            return self._fallback_title(message)
+    
+    def _fallback_title(self, message: str) -> str:
+        """Simple fallback title generation from message."""
+        title = message[:50].rsplit(' ', 1)[0]
+        if len(message) > 50:
+            title += "..."
+        return title
     
     def list_conversations(self, limit: int = 50, offset: int = 0) -> List[ConversationSummary]:
         """

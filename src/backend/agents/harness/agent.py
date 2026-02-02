@@ -22,7 +22,9 @@ if str(HARNESS_DIR) not in sys.path:
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from project root (ikf-ai-concept/) - 4 levels up from agents/harness/agent.py
+PROJECT_ROOT = HARNESS_DIR.parent.parent.parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 
 from agno.agent import Agent
 from agno.media import Image
@@ -39,6 +41,7 @@ from tools import (
     tavily_search,
     extract_url_content,
     generate_word_document,
+    create_artifact,
 )
 
 
@@ -134,7 +137,12 @@ def create_agent() -> Agent:
             - Present polished, high-quality deliverables
             - Structure output according to the template you loaded
             - Include actionable recommendations
-            - If a document is generated, provide the path
+            
+            ### DOCUMENT GENERATION RULES:
+            - When the user asks for a document (report, proposal, etc.), ALWAYS create it as a MARKDOWN artifact first using `create_artifact`.
+            - Do NOT use `generate_word_document` directly unless the user explicitly asks to skip the preview.
+            - The frontend has an "Export" button that allows users to convert the markdown artifact to DOCX/PDF.
+            - Tell the user they can export the document using the button in the preview panel.
 
             ## EXAMPLE FLOW
 
@@ -175,6 +183,7 @@ def create_agent() -> Agent:
             tavily_search,
             extract_url_content,
             generate_word_document,
+            create_artifact,
             NanoBananaTools(aspect_ratio="1:1"),
             NanoBananaTools(aspect_ratio="9:16"),
         ],

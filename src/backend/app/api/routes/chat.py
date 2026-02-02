@@ -91,7 +91,7 @@ async def stream_agent_response(
         # Execute agent - get the run response
         # The agent uses stream=True internally for print_response, 
         # but agent.run() gives us the structured response
-        run_response = agent.run(message)
+        run_response = agent.run(message, session_id=conversation_id)
         
         # Check if there are tool calls/reasoning in the response
         if hasattr(run_response, 'messages') and run_response.messages:
@@ -136,20 +136,17 @@ async def stream_agent_response(
         if hasattr(run_response, 'content') and run_response.content:
             content = run_response.content
             
-            # Stream content in chunks for better UX
-            chunk_size = 50
-            for i in range(0, len(content), chunk_size):
-                chunk = content[i:i + chunk_size]
-                full_content += chunk
-                yield format_sse_event("content", {"delta": chunk})
-                await asyncio.sleep(0.01)  # Small delay for streaming effect
+            # Send content immediately without artificial delay
+            # This avoids the slow "typing" animation effect
+            full_content = content
+            yield format_sse_event("content", {"delta": content})
         
         # Check for any generated artifacts (documents)
         # Look for files in the agent's tmp directory that were created
         agent_tmp = Path(__file__).resolve().parent.parent.parent.parent / "agents" / "harness" / "tmp"
         if agent_tmp.exists():
             for file_path in agent_tmp.glob("*"):
-                if file_path.is_file() and file_path.suffix in ['.docx', '.xlsx', '.pdf', '.png', '.jpg']:
+                if file_path.is_file() and file_path.suffix in ['.docx', '.xlsx', '.pdf', '.png', '.jpg', '.md', '.txt']:
                     # Move to conversation artifacts
                     dest_path = conv_artifacts_dir / file_path.name
                     file_path.rename(dest_path)
