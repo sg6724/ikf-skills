@@ -78,5 +78,5 @@ npm run dev
 
 - **Backend**: Python 3.12, FastAPI, Agno, Supabase (PostgreSQL).
 - **Frontend**: Next.js 15, Tailwind CSS 4, shadcn/ui.
-- **AI Models**: Google Gemini 2.0.
+- **AI Models**: Google Gemini 3 Flash
 - **Tools**: Tavily (Search), Custom Filesystem Tools.
