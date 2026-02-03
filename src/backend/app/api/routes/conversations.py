@@ -7,7 +7,6 @@ Endpoints for listing, retrieving, and deleting conversations.
 import shutil
 from pathlib import Path
 from typing import List, Optional
-from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -54,7 +53,7 @@ class ConversationListResponse(BaseModel):
 
 
 @router.get("", response_model=ConversationListResponse)
-async def list_conversations(limit: int = 50, offset: int = 0):
+def list_conversations(limit: int = 50, offset: int = 0):
     """
     List all conversations, most recent first.
     
@@ -62,7 +61,7 @@ async def list_conversations(limit: int = 50, offset: int = 0):
     Supports pagination via limit and offset parameters.
     """
     db = get_db()
-    conversations = db.list_conversations(limit=limit, offset=offset)
+    conversations, total = db.list_conversations(limit=limit, offset=offset)
     
     return ConversationListResponse(
         conversations=[
@@ -76,12 +75,12 @@ async def list_conversations(limit: int = 50, offset: int = 0):
             )
             for c in conversations
         ],
-        total=len(conversations)
+        total=total
     )
 
 
 @router.get("/{conversation_id}", response_model=ConversationResponse)
-async def get_conversation(conversation_id: str):
+def get_conversation(conversation_id: str):
     """
     Get a conversation with all its messages.
     
@@ -114,7 +113,7 @@ async def get_conversation(conversation_id: str):
 
 
 @router.delete("/{conversation_id}")
-async def delete_conversation(conversation_id: str):
+def delete_conversation(conversation_id: str):
     """
     Delete a conversation and all its messages and artifacts.
     

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # CORS
-    cors_origins: list[str] = ["http://localhost:5001", "http://127.0.0.1:5001", "http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:5001", "http://127.0.0.1:5001", "http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3001"]
     
     # Server
     host: str = "127.0.0.1"
