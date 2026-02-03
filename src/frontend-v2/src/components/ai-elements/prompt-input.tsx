@@ -345,6 +345,8 @@ export type PromptInputProps = Omit<
     code: "max_files" | "max_file_size" | "accept";
     message: string;
   }) => void;
+  onValueChange?: (value: string) => void;
+  value?: string;
   onSubmit: (
     message: PromptInputMessage,
     event: FormEvent<HTMLFormElement>
@@ -361,6 +363,8 @@ export const PromptInput = ({
   maxFileSize,
   onError,
   onSubmit,
+  onValueChange,
+  value,
   children,
   ...props
 }: PromptInputProps) => {
@@ -369,7 +373,14 @@ export const PromptInput = ({
   const usingProvider = !!controller;
 
   // ----- Local text state (bridged via context if no provider)
-  const [localInput, setLocalInput] = useState("");
+  const [localInput, setLocalInput] = useState(value ?? "");
+
+  // Sync local input when value prop changes
+  useEffect(() => {
+    if (value !== undefined) {
+      setLocalInput(value);
+    }
+  }, [value]);
 
   // Refs
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -735,6 +746,9 @@ export const PromptInput = ({
                 clear();
                 if (usingProvider) {
                   controller.textInput.clear();
+                } else {
+                  setLocalInput("");
+                  onValueChange?.("");
                 }
               })
               .catch(() => {
@@ -745,6 +759,9 @@ export const PromptInput = ({
             clear();
             if (usingProvider) {
               controller.textInput.clear();
+            } else {
+              setLocalInput("");
+              onValueChange?.("");
             }
           }
         } catch {
@@ -788,8 +805,15 @@ export const PromptInput = ({
 
   const textCtx = useMemo(() => ({
     value: usingProvider ? controller.textInput.value : localInput,
-    setInput: usingProvider ? controller.textInput.setInput : setLocalInput
-  }), [usingProvider, controller?.textInput, localInput]);
+    setInput: (v: string) => {
+      if (usingProvider) {
+        controller.textInput.setInput(v);
+      } else {
+        setLocalInput(v);
+      }
+      onValueChange?.(v);
+    }
+  }), [usingProvider, controller?.textInput, localInput, onValueChange]);
 
   // Always provide LocalAttachmentsContext so children get validated add function
   return (
@@ -1066,7 +1090,7 @@ export const PromptInputSubmit = ({
   if (status === "submitted") {
     Icon = <Loader2Icon className="size-5 animate-spin" />;
   } else if (status === "streaming") {
-    Icon = <SquareIcon className="size-5" />;
+    Icon = <SquareIcon className="size-5 fill-black text-black" />;
   } else if (status === "error") {
     Icon = <XIcon className="size-5" />;
   }
@@ -1086,7 +1110,9 @@ export const PromptInputSubmit = ({
       className={cn(
         "rounded-full transition-all flex items-center justify-center p-2.5",
         !isDisabled
-          ? "bg-foreground text-background hover:bg-foreground/90 shadow-sm"
+          ? status === "streaming"
+            ? "bg-foreground/10 text-black hover:bg-foreground/20"
+            : "bg-foreground text-background hover:bg-foreground/90 shadow-sm"
           : "bg-muted text-muted-foreground",
         className
       )}

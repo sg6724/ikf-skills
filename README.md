@@ -2,6 +2,8 @@
 
 A FastAPI + FastHTML application for executing AI agents with skills-based architecture.
 
+Application concept is simple. we're building a skills playground for IKF. we have skills/ and agents/ and the whole idea is that when a new skill/agent needs to be created, all that needs to be done is create those md files and push them to the filesystem. no code writing required. it's all about lowering developer overhead. 
+
 ## Setup
 
 1. **Install dependencies** (using `uv`):

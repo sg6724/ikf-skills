@@ -27,7 +27,8 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 from agno.agent import Agent
 from agno.media import Image
-from agno.models.google import Gemini
+# from agno.models.google import Gemini
+from agno.models.groq import Groq
 from agno.tools.nano_banana import NanoBananaTools
 from agno.db.postgres import PostgresDb
 
@@ -214,7 +215,8 @@ def create_agent() -> Agent:
     
     return Agent(
         name="IKF Harness",
-        model=Gemini(id="gemini-3-flash-preview"),
+        # model=Gemini(id="gemini-3-flash-preview"),
+        model=Groq(id="openai/gpt-oss-120b"),
         description="IKF's harness AI agent that dynamically assumes domain expert roles.",
         instructions=SYSTEM_PROMPT,
         tools=[

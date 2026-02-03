@@ -70,6 +70,8 @@ export function WelcomeScreen({
             {/* Centered Input - The Star of the Show */}
             <div className="w-full max-w-2xl">
                 <PromptInput
+                    value={inputValue}
+                    onValueChange={onInputChange}
                     onSubmit={(message) => {
                         if (message.text.trim()) {
                             onSubmit();

@@ -116,9 +116,13 @@ function renderPart(part: UIMessage['parts'][number], idx: number) {
     // Tool parts can be static (tool-*) or dynamic-tool
     if (part.type === 'dynamic-tool' || part.type.startsWith('tool-')) {
         const toolPart = part as unknown as ToolPart;
+        const isLive = toolPart.state === 'input-streaming' || toolPart.state === 'input-available';
 
         return (
-            <Tool key={`tool-${(toolPart as any).toolCallId ?? idx}`}>
+            <Tool
+                key={`tool-${(toolPart as any).toolCallId ?? idx}`}
+                defaultOpen={isLive}
+            >
                 <ToolHeader
                     type={toolPart.type as any}
                     state={toolPart.state as any}
@@ -291,7 +295,11 @@ export function ChatPage({ conversationId }: ChatPageProps) {
                         </Message>
                     ))}
 
-                    {isStreaming && <TypingIndicator />}
+                    {isStreaming && !messages[messages.length - 1]?.parts.some(p =>
+                        (p.type === 'reasoning' && p.state === 'streaming') ||
+                        (p.type.startsWith('tool-') && (p as any).state?.includes('streaming')) ||
+                        (p.type === 'dynamic-tool' && (p as any).state?.includes('streaming'))
+                    ) && <TypingIndicator />}
                 </ConversationContent>
                 <ConversationScrollButton />
             </Conversation>
