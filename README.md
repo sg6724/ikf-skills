@@ -1,58 +1,82 @@
 # IKF AI Skills Playground
 
-A FastAPI + FastHTML application for executing AI agents with skills-based architecture.
-
 Application concept is simple. we're building a skills playground for IKF. we have skills/ and agents/ and the whole idea is that when a new skill/agent needs to be created, all that needs to be done is create those md files and push them to the filesystem. no code writing required. it's all about lowering developer overhead. 
+## 🚀 Core Philosophy
 
-## Setup
+**Lowering Developer Overhead**: The whole idea is that when a new skill or agent needs to be created, all that needs to be done is create the corresponding `.md` files and push them to the filesystem. The system automatically discovers and integrates them.
 
-1. **Install dependencies** (using `uv`):
+- **Agents**: Defined in `agents/[domain]/AGENTS.md`
+- **Skills**: Modular instructions and resources in `skills/[domain]/[skill-name]`
+
+---
+
+## 🏗️ Project Status
+
+The project is now in its v2 architecture, featuring a robust streaming backend and a modern React-based frontend.
+
+### Current Features:
+- **Filesystem-based Discovery**: Dynamic loading of agents and skills.
+- **SSE Streaming**: Custom Server-Sent Events for real-time chat, tool calls, and thinking steps.
+- **Modern UI**: Built with Next.js 15, Tailwind CSS 4, and premium chat components.
+- **Persistent Memory**: Chat history and sessions stored in Supabase (Postgres).
+- **Artifact Generation**: Agents can generate documents (DOCX, PDF, etc.) accessible via the UI.
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+- [uv](https://github.com/astral-sh/uv) (Python package manager)
+- [Node.js](https://nodejs.org/) & `npm`
+
+### Environment Setup
+
+1. **Backend Environment**:
+   ```bash
+   cp src/backend/.env.example src/backend/.env
+   # Add your API keys (GOOGLE_API_KEY, TAVILY_API_KEY, SUPABASE_URL, etc.)
+   ```
+
+2. **Frontend Environment**:
+   ```bash
+   cp src/frontend-v2/.env.local.example src/frontend-v2/.env.local
+   ```
+
+---
+
+## 🏃 Running the Application
+
+### 1. Start the Backend
 ```bash
-uv sync
+cd src/backend
+uv run python -m app.main
 ```
+> [!NOTE]
+> Backend runs on http://localhost:8000. API documentation is available at `/docs`.
 
-2. **Configure environment variables**:
+### 2. Start the Frontend
 ```bash
-cp .env.example .env
-# Add your API keys (TAVILY_API_KEY, GOOGLE_API_KEY)
+cd src/frontend-v2
+npm run dev
 ```
+> [!NOTE]
+> Frontend runs on http://localhost:3001 (or as configured in Next.js).
 
-## Running the Application
+---
 
-### Standalone Agent in TUI
-```bash
-uv run src/agents/social_media/agent.py
-```
+## 📂 Project Structure
 
-### Start the Backend (Terminal 1)
-```bash
-uv run uvicorn src.backend.main:app --reload --port 8000
-```
+- `agents/`: Domain-specific agent definitions.
+- `skills/`: Modular skill instructions and toolsets.
+- `src/backend/`: FastAPI application, Agno orchestration, and DB logic.
+- `src/frontend-v2/`: Next.js frontend with Tailwind CSS 4.
+- `local/`: Project learnings and implementation details.
 
-Backend will be available at http://localhost:8000
-- API docs: http://localhost:8000/docs
-- Health check: http://localhost:8000/health
+---
 
-### Start the Frontend (Terminal 2)
-```bash
-uv run python src/frontend/main.py
-```
+## 🧪 Tech Stack
 
-Frontend will be available at http://localhost:5001
-
-## Future Roadmap
-
-- [ ] Authentication & user management
-- [ ] Conversation persistence (Firestore)
-- [ ] Skills CRUD & file upload
-- [ ] Multi-agent support
-- [ ] Streaming responses
-- [ ] Real-time tool call visualization
-
-## Development
-
-Built with:
-- **Backend**: FastAPI, Pydantic
-- **Frontend**: FastHTML, HTMX
-- **AI**: Agno framework with Google Gemini
-- **Tools**: Tavily (search), Custom skills
+- **Backend**: Python 3.12, FastAPI, Agno, Supabase (PostgreSQL).
+- **Frontend**: Next.js 15, Tailwind CSS 4, shadcn/ui.
+- **AI Models**: Google Gemini 2.0.
+- **Tools**: Tavily (Search), Custom Filesystem Tools.
