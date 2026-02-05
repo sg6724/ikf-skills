@@ -21,13 +21,12 @@ ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "a
 
 # Pydantic models for API responses
 class MessageResponse(BaseModel):
-    id: str
+    id: int
     conversation_id: str
     role: str
     content: str
-    thinking_steps: Optional[List[dict]] = None
     artifacts: Optional[List[dict]] = None
-    created_at: Optional[str] = None
+    timestamp: Optional[str] = None
 
 
 class ConversationSummaryResponse(BaseModel):
@@ -45,6 +44,7 @@ class ConversationResponse(BaseModel):
     messages: List[MessageResponse]
     created_at: str
     updated_at: str
+    is_shared: bool = False
 
 
 class ConversationListResponse(BaseModel):
@@ -101,14 +101,14 @@ def get_conversation(conversation_id: str):
                 conversation_id=m.conversation_id,
                 role=m.role,
                 content=m.content,
-                thinking_steps=m.thinking_steps,
                 artifacts=m.artifacts,
-                created_at=m.created_at
+                timestamp=m.timestamp
             )
             for m in conversation.messages
         ],
         created_at=conversation.created_at,
-        updated_at=conversation.updated_at
+        updated_at=conversation.updated_at,
+        is_shared=conversation.is_shared
     )
 
 

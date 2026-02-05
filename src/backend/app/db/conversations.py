@@ -1,35 +1,35 @@
 """
 Conversation Database Module
 
-Supabase-based storage for session-based conversations.
+SQLite-based storage for session-based conversations.
 Stores conversations and messages with artifact references.
 """
 
 import json
+import sqlite3
 import uuid
 from datetime import datetime
 from typing import Optional, List, Tuple
 from dataclasses import dataclass
-from collections import defaultdict
+from pathlib import Path
 import threading
-import os
-import time
-
-from supabase import create_client, Client
 
 from app.config import settings
+
+
+# Database file location
+DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "ikf_chat.db"
 
 
 @dataclass
 class Message:
     """A single message in a conversation"""
-    id: str
+    id: int
     conversation_id: str
     role: str  # "user" or "assistant"
     content: str
-    thinking_steps: Optional[List[dict]] = None
     artifacts: Optional[List[dict]] = None
-    created_at: Optional[str] = None
+    timestamp: Optional[str] = None
 
 
 @dataclass
@@ -51,19 +51,66 @@ class Conversation:
     messages: List[Message]
     created_at: str
     updated_at: str
+    is_shared: bool = False
 
 
 class ConversationDB:
-    """Supabase-based conversation storage"""
+    """SQLite-based conversation storage"""
+    
+    _local = threading.local()
     
     def __init__(self):
-        if not settings.supabase_url or not settings.supabase_anon_key:
-            raise ValueError("Supabase credentials not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env")
+        # Ensure data directory exists
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self._init_db()
+    
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get thread-local database connection"""
+        if not hasattr(self._local, 'connection') or self._local.connection is None:
+            self._local.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+            self._local.connection.row_factory = sqlite3.Row
+        return self._local.connection
+    
+    def _init_db(self):
+        """Initialize database tables if they don't exist"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
         
-        self.client: Client = create_client(
-            settings.supabase_url,
-            settings.supabase_anon_key
-        )
+        # Create conversations table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_shared BOOLEAN DEFAULT 0
+            )
+        """)
+        
+        # Create messages table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversation_id TEXT,
+                role TEXT,
+                content TEXT,
+                artifacts TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Create indexes for performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_messages_conversation_id 
+            ON messages(conversation_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_conversations_updated_at 
+            ON conversations(updated_at DESC)
+        """)
+        
+        conn.commit()
     
     def create_conversation(self, title: Optional[str] = None, first_message: Optional[str] = None) -> str:
         """
@@ -74,85 +121,30 @@ class ConversationDB:
             first_message: First user message, used for title if title not provided
             
         Returns:
-            Conversation ID
+            Conversation ID (UUID format)
         """
-        conv_id = f"conv_{uuid.uuid4().hex[:12]}"
+        conv_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
-
-        # Use first message as title (truncated) - no AI generation
-        if not title:
-            title = self._fallback_title(first_message) if first_message else "New Conversation"
         
-        self.client.table("conversations").insert({
-            "id": conv_id,
-            "title": title,
-            "created_at": now,
-            "updated_at": now
-        }).execute()
+        # Use first message as title (truncated) if no title provided
+        if not title:
+            title = self._generate_title(first_message) if first_message else "New Conversation"
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO conversations (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)",
+            (conv_id, title, now, now)
+        )
+        conn.commit()
         
         return conv_id
-
-    def _update_conversation_title_safe(self, conversation_id: str, first_message: str) -> None:
-        """
-        Best-effort async title update. Never raise - this runs off the request path.
-        """
-        try:
-            title = self._generate_smart_title(first_message)
-            if not title:
-                return
-            # Use a fresh client to avoid sharing HTTP state across threads.
-            client = create_client(settings.supabase_url, settings.supabase_anon_key)
-            client.table("conversations")\
-                .update({"title": title})\
-                .eq("id", conversation_id)\
-                .execute()
-        except Exception as e:
-            # Avoid noisy logs in production. If you want to debug, add a logger here.
-            return
     
-    def _generate_smart_title(self, message: str) -> str:
-        """
-        Generate a concise 2-3 word title for the conversation using Gemini.
-        Falls back to truncated message if LLM fails.
-        """
-        try:
-            from google import genai
-            import os
-            
-            # Configure Gemini
-            api_key = os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                raise ValueError("GOOGLE_API_KEY not set")
-            
-            client = genai.Client(api_key=api_key)
-            
-            prompt = f"""Generate a concise 2-3 word title summarizing this user message. 
-Just output the title, nothing else. No quotes, no explanation.
-
-User message: {message[:500]}
-
-Title:"""
-            
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt
-            )
-            title = response.text.strip().strip('"').strip("'")
-            
-            # Ensure it's not too long
-            if len(title) > 40:
-                title = title[:40].rsplit(' ', 1)[0]
-            
-            return title if title else self._fallback_title(message)
-            
-        except Exception as e:
-            # Fallback to simple truncation if LLM fails
-            print(f"LLM title generation failed: {e}")
-            return self._fallback_title(message)
-    
-    def _fallback_title(self, message: str) -> str:
-        """Simple fallback title generation from message."""
-        title = message[:50].rsplit(' ', 1)[0]
+    def _generate_title(self, message: str) -> str:
+        """Generate a title from the first message (truncated)"""
+        if not message:
+            return "New Conversation"
+        title = message[:50].rsplit(' ', 1)[0] if len(message) > 50 else message
         if len(message) > 50:
             title += "..."
         return title
@@ -163,63 +155,55 @@ Title:"""
         
         Returns list of ConversationSummary with preview from last message.
         """
-        timing_on = os.getenv("IKF_TIMING_LOGS") == "1"
-        t0 = time.perf_counter() if timing_on else 0.0
-
-        # Fetch the conversation page + total count in one request.
-        response = self.client.table("conversations")\
-            .select("*", count="exact")\
-            .order("updated_at", desc=True)\
-            .range(offset, offset + limit - 1)\
-            .execute()
-        t_conv = (time.perf_counter() - t0) if timing_on else 0.0
-
-        conv_rows = response.data or []
-        total = response.count if response.count is not None else len(conv_rows)
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Get total count
+        cursor.execute("SELECT COUNT(*) FROM conversations")
+        total = cursor.fetchone()[0]
+        
+        # Get conversations page
+        cursor.execute("""
+            SELECT * FROM conversations 
+            ORDER BY updated_at DESC 
+            LIMIT ? OFFSET ?
+        """, (limit, offset))
+        conv_rows = cursor.fetchall()
+        
         if not conv_rows:
             return [], total
-
-        # IMPORTANT: Avoid N+1 requests. Fetch all messages for the page of conversations
-        # in a single query, then compute last-message preview and message counts locally.
-        conv_ids = [row["id"] for row in conv_rows]
-        msg_response = self.client.table("messages")\
-            .select("conversation_id, content, created_at")\
-            .in_("conversation_id", conv_ids)\
-            .order("created_at", desc=True)\
-            .execute()
-        t_msgs = (time.perf_counter() - t0 - t_conv) if timing_on else 0.0
-
-        last_content_by_conv = {}
-        message_count_by_conv = defaultdict(int)
-        for msg in (msg_response.data or []):
-            conv_id = msg.get("conversation_id")
-            if not conv_id:
-                continue
-            message_count_by_conv[conv_id] += 1
-            if conv_id not in last_content_by_conv:
-                last_content_by_conv[conv_id] = msg.get("content") or ""
-
+        
         summaries: List[ConversationSummary] = []
+        
         for row in conv_rows:
-            cid = row["id"]
-            last_content = last_content_by_conv.get(cid, "")
+            conv_id = row["id"]
+            
+            # Get last message for preview
+            cursor.execute("""
+                SELECT content FROM messages 
+                WHERE conversation_id = ? 
+                ORDER BY timestamp DESC 
+                LIMIT 1
+            """, (conv_id,))
+            last_msg = cursor.fetchone()
+            preview = last_msg["content"][:100] if last_msg else ""
+            
+            # Get message count
+            cursor.execute("""
+                SELECT COUNT(*) FROM messages 
+                WHERE conversation_id = ?
+            """, (conv_id,))
+            msg_count = cursor.fetchone()[0]
+            
             summaries.append(ConversationSummary(
-                id=cid,
+                id=conv_id,
                 title=row["title"],
-                preview=last_content[:100] if last_content else "",
-                message_count=int(message_count_by_conv.get(cid, 0)),
+                preview=preview,
+                message_count=msg_count,
                 created_at=row["created_at"],
                 updated_at=row["updated_at"]
             ))
-
-        if timing_on:
-            t_total = time.perf_counter() - t0
-            print(
-                "timing list_conversations:"
-                f" convs={len(conv_rows)} msgs={len(msg_response.data or [])}"
-                f" conv_fetch={t_conv:.3f}s msgs_fetch={t_msgs:.3f}s total={t_total:.3f}s"
-            )
-
+        
         return summaries, total
     
     def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
@@ -228,23 +212,23 @@ Title:"""
         
         Returns None if conversation doesn't exist.
         """
-        # Get conversation
-        conv_response = self.client.table("conversations")\
-            .select("*")\
-            .eq("id", conversation_id)\
-            .execute()
+        conn = self._get_connection()
+        cursor = conn.cursor()
         
-        if not conv_response.data:
+        # Get conversation
+        cursor.execute("SELECT * FROM conversations WHERE id = ?", (conversation_id,))
+        conv_row = cursor.fetchone()
+        
+        if not conv_row:
             return None
         
-        conv_row = conv_response.data[0]
-        
         # Get messages
-        msg_response = self.client.table("messages")\
-            .select("*")\
-            .eq("conversation_id", conversation_id)\
-            .order("created_at", desc=False)\
-            .execute()
+        cursor.execute("""
+            SELECT * FROM messages 
+            WHERE conversation_id = ? 
+            ORDER BY timestamp ASC
+        """, (conversation_id,))
+        msg_rows = cursor.fetchall()
         
         messages = [
             Message(
@@ -252,11 +236,10 @@ Title:"""
                 conversation_id=row["conversation_id"],
                 role=row["role"],
                 content=row["content"],
-                thinking_steps=row["thinking_steps"] if row.get("thinking_steps") else None,
-                artifacts=row["artifacts"] if row.get("artifacts") else None,
-                created_at=row["created_at"]
+                artifacts=json.loads(row["artifacts"]) if row["artifacts"] else None,
+                timestamp=row["timestamp"]
             )
-            for row in msg_response.data
+            for row in msg_rows
         ]
         
         return Conversation(
@@ -264,7 +247,8 @@ Title:"""
             title=conv_row["title"],
             messages=messages,
             created_at=conv_row["created_at"],
-            updated_at=conv_row["updated_at"]
+            updated_at=conv_row["updated_at"],
+            is_shared=bool(conv_row["is_shared"])
         )
     
     def delete_conversation(self, conversation_id: str) -> bool:
@@ -273,27 +257,21 @@ Title:"""
         
         Returns True if deleted, False if not found.
         """
-        # Check if exists
-        check = self.client.table("conversations")\
-            .select("id")\
-            .eq("id", conversation_id)\
-            .execute()
+        conn = self._get_connection()
+        cursor = conn.cursor()
         
-        if not check.data:
+        # Check if exists
+        cursor.execute("SELECT id FROM conversations WHERE id = ?", (conversation_id,))
+        if not cursor.fetchone():
             return False
         
-        # Delete messages first (CASCADE should handle this, but be explicit)
-        self.client.table("messages")\
-            .delete()\
-            .eq("conversation_id", conversation_id)\
-            .execute()
+        # Delete messages first
+        cursor.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
         
         # Delete conversation
-        self.client.table("conversations")\
-            .delete()\
-            .eq("id", conversation_id)\
-            .execute()
+        cursor.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
         
+        conn.commit()
         return True
     
     def add_message(
@@ -301,10 +279,9 @@ Title:"""
         conversation_id: str,
         role: str,
         content: str,
-        thinking_steps: Optional[List[dict]] = None,
         artifacts: Optional[List[dict]] = None,
         update_conversation_updated_at: bool = True,
-    ) -> str:
+    ) -> int:
         """
         Add a message to a conversation.
         
@@ -312,55 +289,98 @@ Title:"""
             conversation_id: The conversation to add to
             role: "user" or "assistant"
             content: Message content
-            thinking_steps: Optional list of thinking/tool steps
             artifacts: Optional list of artifact references
             
         Returns:
             Message ID
         """
-        message_id = f"msg_{uuid.uuid4().hex[:12]}"
+        conn = self._get_connection()
+        cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         
-        self.client.table("messages").insert({
-            "id": message_id,
-            "conversation_id": conversation_id,
-            "role": role,
-            "content": content,
-            "thinking_steps": thinking_steps,
-            "artifacts": artifacts,
-            "created_at": now
-        }).execute()
+        cursor.execute(
+            "INSERT INTO messages (conversation_id, role, content, artifacts, timestamp) VALUES (?, ?, ?, ?, ?)",
+            (conversation_id, role, content, json.dumps(artifacts) if artifacts else None, now)
+        )
+        message_id = cursor.lastrowid
         
         # Update conversation's updated_at
         if update_conversation_updated_at:
-            self.client.table("conversations")\
-                .update({"updated_at": now})\
-                .eq("id", conversation_id)\
-                .execute()
+            cursor.execute(
+                "UPDATE conversations SET updated_at = ? WHERE id = ?",
+                (now, conversation_id)
+            )
         
+        conn.commit()
         return message_id
     
-    def update_message_artifacts(self, message_id: str, artifacts: List[dict]) -> bool:
+    def update_message_artifacts(self, message_id: int, artifacts: List[dict]) -> bool:
         """
-        Update artifacts for a message (used when agent generates files during streaming).
+        Update artifacts for a message.
         
         Returns True if updated, False if message not found.
         """
-        response = self.client.table("messages")\
-            .update({"artifacts": artifacts})\
-            .eq("id", message_id)\
-            .execute()
+        conn = self._get_connection()
+        cursor = conn.cursor()
         
-        return len(response.data) > 0
+        cursor.execute(
+            "UPDATE messages SET artifacts = ? WHERE id = ?",
+            (json.dumps(artifacts), message_id)
+        )
+        conn.commit()
+        
+        return cursor.rowcount > 0
     
     def conversation_exists(self, conversation_id: str) -> bool:
         """Check if a conversation exists"""
-        response = self.client.table("conversations")\
-            .select("id")\
-            .eq("id", conversation_id)\
-            .execute()
+        conn = self._get_connection()
+        cursor = conn.cursor()
         
-        return len(response.data) > 0
+        cursor.execute("SELECT id FROM conversations WHERE id = ?", (conversation_id,))
+        return cursor.fetchone() is not None
+    
+    def get_conversation_history(self, conversation_id: str) -> List[dict]:
+        """
+        Get conversation history formatted for the AI model.
+        
+        Returns list of {role, content} dicts in chronological order.
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT role, content FROM messages 
+            WHERE conversation_id = ? 
+            ORDER BY timestamp ASC
+        """, (conversation_id,))
+        
+        return [{"role": row["role"], "content": row["content"]} for row in cursor.fetchall()]
+    
+    def set_conversation_shared(self, conversation_id: str, is_shared: bool) -> bool:
+        """Set the is_shared flag for a conversation"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "UPDATE conversations SET is_shared = ? WHERE id = ?",
+            (1 if is_shared else 0, conversation_id)
+        )
+        conn.commit()
+        
+        return cursor.rowcount > 0
+    
+    def update_conversation_title(self, conversation_id: str, title: str) -> bool:
+        """Update a conversation's title"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "UPDATE conversations SET title = ? WHERE id = ?",
+            (title, conversation_id)
+        )
+        conn.commit()
+        
+        return cursor.rowcount > 0
 
 
 # Singleton instance

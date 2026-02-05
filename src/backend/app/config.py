@@ -21,10 +21,8 @@ class Settings(BaseSettings):
     tavily_api_key: Optional[str] = None
     google_api_key: Optional[str] = None
     
-    # Supabase
-    supabase_url: Optional[str] = None
-    supabase_anon_key: Optional[str] = None
-    supabase_db_url: Optional[str] = None  # PostgreSQL connection URL for Agno
+    # Database
+    sqlite_db_path: str = "data/ikf_chat.db"
     
 
     
@@ -41,6 +39,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra env vars like old Supabase settings
 
 
 # Global settings instance
