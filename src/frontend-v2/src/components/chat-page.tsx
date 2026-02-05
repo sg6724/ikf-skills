@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useChat, type UIMessage, Chat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -198,44 +198,78 @@ export function ChatPage({ conversationId }: ChatPageProps) {
         setInput('');
     }, [conversationId]);
 
-    useEffect(() => {
+    // Synchronously update refs BEFORE other effects run.
+    // This fixes the race condition where other effects might read stale values.
+    // useLayoutEffect runs synchronously after DOM mutations but before paint,
+    // ensuring refs are updated before useEffect callbacks execute.
+    useLayoutEffect(() => {
         conversationIdRef.current = conversationId ?? null;
     }, [conversationId]);
 
-    useEffect(() => {
-        const isAssigningNewId =
-            previousConversationIdRef.current === null &&
-            conversationId &&
-            messages.length > 0;
+    // Chat key management - controls when to reset the Chat instance
+    // 
+    // CRITICAL: When a new conversation gets its first ID from the backend,
+    // we must NOT reset the chatKey. Resetting would recreate the Chat instance,
+    // which would lose all streaming state (tool calls, reasoning, etc.)
+    //
+    // The key insight: if chatKey is 'new' and we already have messages,
+    // then we're in a new conversation that just got its ID - preserve it!
+    useLayoutEffect(() => {
+        const previousConversationId = previousConversationIdRef.current;
 
-        if (isAssigningNewId) {
+        // Check if this is a new conversation that just received its ID
+        const isNewChatReceivingId =
+            chatKey === 'new' &&
+            conversationId &&
+            messages.length > 0 &&
+            !previousConversationId;
+
+        if (isNewChatReceivingId) {
+            // Don't change chatKey - keep the current Chat instance alive
+            // The streaming messages, tool calls, and reasoning are preserved
             preserveChatKeyRef.current = true;
             return;
         }
 
-        if (preserveChatKeyRef.current && previousConversationIdRef.current === conversationId) {
-            return;
+        // If we were preserving but now switching to a different conversation
+        if (preserveChatKeyRef.current && conversationId !== previousConversationId) {
+            // User navigated away, reset the flag
+            preserveChatKeyRef.current = false;
         }
 
-        preserveChatKeyRef.current = false;
-        setChatKey(conversationId ?? 'new');
-    }, [conversationId, messages.length]);
+        // Only change chatKey if we're not preserving
+        if (!preserveChatKeyRef.current) {
+            const newKey = conversationId ?? 'new';
+            if (newKey !== chatKey) {
+                setChatKey(newKey);
+            }
+        }
 
-    // Load history (as UIMessage objects) from our Next.js proxy route.
+        previousConversationIdRef.current = conversationId ?? null;
+    }, [conversationId, messages.length, chatKey]);
+
+    // Load history (as UIMessage objects) from our Next.js API proxy route.
+    // IMPORTANT: Skip loading when we're preserving an active streaming session
     useEffect(() => {
         let cancelled = false;
 
         const load = async () => {
+            // Case 1: No conversation ID = new chat, clear messages
             if (!conversationId) {
-                // If we explicitly switched away from an existing conversation, clear local messages.
-                if (previousConversationIdRef.current) {
-                    setMessages([]);
-                }
-                previousConversationIdRef.current = conversationId ?? null;
+                setMessages([]);
                 setIsHistoryLoading(false);
                 return;
             }
 
+            // Case 2: Preserving current chat (new chat just got its ID)
+            // DO NOT load history - it would overwrite our streaming messages
+            // which contain tool calls and reasoning that aren't in the database
+            if (preserveChatKeyRef.current) {
+                setIsHistoryLoading(false);
+                return;
+            }
+
+            // Case 3: Navigating to an existing conversation - load its history
             setIsHistoryLoading(true);
             try {
                 const res = await fetch(`/api/conversations/${conversationId}`, { cache: 'no-store' });
@@ -250,7 +284,6 @@ export function ChatPage({ conversationId }: ChatPageProps) {
                 if (!cancelled) {
                     setIsHistoryLoading(false);
                 }
-                previousConversationIdRef.current = conversationId ?? null;
             }
         };
 
@@ -258,7 +291,7 @@ export function ChatPage({ conversationId }: ChatPageProps) {
         return () => {
             cancelled = true;
         };
-    }, [conversationId, setMessages]);
+    }, [conversationId, chatKey, setMessages]);
 
     const handleSubmit = (message: PromptInputMessage) => {
         if (!message.text?.trim() || isStreaming) return;
@@ -354,12 +387,12 @@ export function ChatPage({ conversationId }: ChatPageProps) {
                     ))}
 
                     {showInlineTypingIndicator && (
-                            <Message from="assistant">
-                                <MessageContent>
-                                    <TypingIndicator />
-                                </MessageContent>
-                            </Message>
-                        )}
+                        <Message from="assistant">
+                            <MessageContent>
+                                <TypingIndicator />
+                            </MessageContent>
+                        </Message>
+                    )}
                 </ConversationContent>
                 <ConversationScrollButton />
             </Conversation>
@@ -388,14 +421,14 @@ export function ChatPage({ conversationId }: ChatPageProps) {
                                     <PromptInputButton>
                                         <MicIcon className="size-5" />
                                     </PromptInputButton>
-                                <PromptInputSubmit
-                                    status={isStreaming ? 'streaming' : 'ready'}
-                                    onStop={stop}
-                                    disabled={!input.trim() || isStreaming}
-                                />
-                            </PromptInputActions>
-                        </PromptInputFooter>
-                    </PromptInputBody>
+                                    <PromptInputSubmit
+                                        status={isStreaming ? 'streaming' : 'ready'}
+                                        onStop={stop}
+                                        disabled={!input.trim() || isStreaming}
+                                    />
+                                </PromptInputActions>
+                            </PromptInputFooter>
+                        </PromptInputBody>
                     </PromptInput>
                 </div>
             </div>

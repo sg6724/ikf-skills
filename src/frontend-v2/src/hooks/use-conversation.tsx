@@ -69,26 +69,39 @@ export function ConversationProvider({ children, initialConversationId }: Conver
     }, []);
 
     // Set active conversation with optional URL update
+    // NOTE: For new conversations receiving their first ID, we use replaceState
+    // to update the URL WITHOUT causing a page navigation. This preserves
+    // the streaming state (tool calls, reasoning) in the ChatPage component.
     const setActiveConversation = useCallback((id: string | null, options?: { updateUrl?: boolean }) => {
+        const previousId = activeConversationId;
         setActiveConversationId(id);
 
         // Update URL by default when switching conversations
         const shouldUpdateUrl = options?.updateUrl !== false;
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : pathname;
 
         if (shouldUpdateUrl) {
             if (id) {
-                // Navigate to /c/{id} for shareable URL
-                if (pathname !== `/c/${id}`) {
-                    router.push(`/c/${id}`);
+                const newPath = `/c/${id}`;
+                if (currentPath !== newPath) {
+                    // Check if this is a NEW conversation (transitioning from null/undefined)
+                    // In this case, use replaceState to avoid page remount
+                    if (!previousId && currentPath === '/') {
+                        // New conversation just got its ID - shallow update
+                        window.history.replaceState(null, '', newPath);
+                    } else {
+                        // Navigating between existing conversations - full navigation
+                        router.push(newPath);
+                    }
                 }
             } else {
                 // Navigate to root for new chat
-                if (pathname !== '/') {
+                if (currentPath !== '/') {
                     router.push('/');
                 }
             }
         }
-    }, [router, pathname]);
+    }, [router, pathname, activeConversationId]);
 
     const value = useMemo<ConversationContextType>(() => ({
         activeConversationId,
