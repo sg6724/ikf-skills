@@ -154,55 +154,62 @@ class ConversationDB:
         List all conversations, most recent first.
         
         Returns list of ConversationSummary with preview from last message.
+        
+        Optimized: Uses JOINs with window functions instead of N+1 queries.
+        Previously made 1 + 2*N queries (101 queries for 50 conversations).
+        Now makes only 2 queries total regardless of page size.
         """
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        # Get total count
+        # Get total count (1 query)
         cursor.execute("SELECT COUNT(*) FROM conversations")
         total = cursor.fetchone()[0]
         
-        # Get conversations page
+        if total == 0:
+            return [], 0
+        
+        # Get conversations with message count and preview using JOINs (1 query)
+        # - LEFT JOIN with derived table for message counts (grouped by conversation_id)
+        # - LEFT JOIN with window function ROW_NUMBER() to get the latest message
         cursor.execute("""
-            SELECT * FROM conversations 
-            ORDER BY updated_at DESC 
+            SELECT 
+                c.id,
+                c.title,
+                c.created_at,
+                c.updated_at,
+                COALESCE(stats.message_count, 0) as message_count,
+                last_msg.preview
+            FROM conversations c
+            LEFT JOIN (
+                SELECT conversation_id, COUNT(*) as message_count
+                FROM messages
+                GROUP BY conversation_id
+            ) stats ON stats.conversation_id = c.id
+            LEFT JOIN (
+                SELECT 
+                    conversation_id, 
+                    SUBSTR(content, 1, 100) as preview,
+                    ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY timestamp DESC) as rn
+                FROM messages
+            ) last_msg ON last_msg.conversation_id = c.id AND last_msg.rn = 1
+            ORDER BY c.updated_at DESC
             LIMIT ? OFFSET ?
         """, (limit, offset))
-        conv_rows = cursor.fetchall()
         
-        if not conv_rows:
-            return [], total
+        rows = cursor.fetchall()
         
-        summaries: List[ConversationSummary] = []
-        
-        for row in conv_rows:
-            conv_id = row["id"]
-            
-            # Get last message for preview
-            cursor.execute("""
-                SELECT content FROM messages 
-                WHERE conversation_id = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            """, (conv_id,))
-            last_msg = cursor.fetchone()
-            preview = last_msg["content"][:100] if last_msg else ""
-            
-            # Get message count
-            cursor.execute("""
-                SELECT COUNT(*) FROM messages 
-                WHERE conversation_id = ?
-            """, (conv_id,))
-            msg_count = cursor.fetchone()[0]
-            
-            summaries.append(ConversationSummary(
-                id=conv_id,
+        summaries = [
+            ConversationSummary(
+                id=row["id"],
                 title=row["title"],
-                preview=preview,
-                message_count=msg_count,
+                preview=row["preview"] or "",
+                message_count=row["message_count"],
                 created_at=row["created_at"],
                 updated_at=row["updated_at"]
-            ))
+            )
+            for row in rows
+        ]
         
         return summaries, total
     
