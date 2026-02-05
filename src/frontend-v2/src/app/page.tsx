@@ -75,7 +75,7 @@ function MainLayout() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <ChatPage key={activeConversationId || 'new'} conversationId={activeConversationId} />
+        <ChatPage conversationId={activeConversationId} />
       </div>
 
       {/* Artifact Panel - only show when artifact is selected */}

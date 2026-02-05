@@ -172,6 +172,9 @@ def stream_agent_response_ui(
 
     db = get_db()
 
+    # Load existing conversation history for context
+    conversation_history = db.get_conversation_history(conversation_id)
+
     db.add_message(
         conversation_id=conversation_id,
         role="user",
@@ -218,14 +221,20 @@ def stream_agent_response_ui(
     try:
         agent = create_agent()
 
+        # Build messages list: history + new message
+        messages = conversation_history + [{"role": "user", "content": message}]
+
         run_stream = agent.run(
-            message,
-            session_id=conversation_id,
+            messages,
             stream=True,
             stream_events=True,
         )
 
         for ev in run_stream:
+            # DEBUG logging
+            event_type = getattr(ev, "event", "unknown")
+            print(f"DEBUG EVENT: {event_type}")
+            
             # Tool lifecycle
             if getattr(ev, "event", None) == RunEvent.tool_call_started.value and getattr(ev, "tool", None):
                 tool = ev.tool
@@ -248,7 +257,6 @@ def stream_agent_response_ui(
                         "type": "tool-input-start",
                         "toolCallId": tool_call_id,
                         "toolName": tool_name,
-                        "dynamic": True,
                     }
                 )
                 yield _format_sse_json(
@@ -257,7 +265,6 @@ def stream_agent_response_ui(
                         "toolCallId": tool_call_id,
                         "toolName": tool_name,
                         "input": tool_args,
-                        "dynamic": True,
                     }
                 )
                 continue
@@ -276,7 +283,6 @@ def stream_agent_response_ui(
                         "type": "tool-output-available",
                         "toolCallId": tool_call_id,
                         "output": tool_result,
-                        "dynamic": True,
                     }
                 )
 
@@ -323,7 +329,6 @@ def stream_agent_response_ui(
                         "type": "tool-output-error",
                         "toolCallId": tool_call_id,
                         "errorText": str(error_text),
-                        "dynamic": True,
                     }
                 )
                 continue
@@ -373,13 +378,11 @@ def stream_agent_response_ui(
         yield _format_sse_json({"type": "finish-step"})
         yield _format_sse_json({"type": "finish", "finishReason": "stop"})
 
-        # Persist assistant response (best-effort; keep it cheap)
-        thinking_steps = list(tool_invocations_by_id.values()) if tool_invocations_by_id else None
+        # Persist assistant response
         db.add_message(
             conversation_id=conversation_id,
             role="assistant",
             content=full_content,
-            thinking_steps=thinking_steps,
             artifacts=artifacts if artifacts else None,
         )
 
@@ -399,6 +402,9 @@ def stream_agent_response(
     real-time streaming of text, tool calls, and reasoning.
     """
     db = get_db()
+    
+    # Load existing conversation history for context
+    conversation_history = db.get_conversation_history(conversation_id)
     
     # Store user message
     user_message_id = db.add_message(
@@ -420,16 +426,16 @@ def stream_agent_response(
         
         # Collect response data for database storage
         full_content = ""
-        thinking_steps = []
         artifacts = []
         seen_tool_call_ids: set[str] = set()
         tool_name_by_id: dict[str, str] = {}
         
+        # Build messages list: history + new message
+        messages = conversation_history + [{"role": "user", "content": message}]
+        
         # Execute agent with streaming.
-        # In Agno, stream_events=True is required to receive tool-call events (and other non-content events).
         run_response = agent.run(
-            message,
-            session_id=conversation_id,
+            messages,
             stream=True,
             stream_events=True,
         )
@@ -468,8 +474,7 @@ def stream_agent_response(
                         if tool_call_id not in seen_tool_call_ids:
                             seen_tool_call_ids.add(tool_call_id)
                             tool_name_by_id[tool_call_id] = tool_name
-                            yield format_sse_tool_call(tool_call_id, tool_name, tool_args, "input-available")
-                        thinking_steps.append({"type": "tool_call", "name": tool_name})
+                        yield format_sse_tool_call(tool_call_id, tool_name, tool_args, "input-available")
             
             # Tool results (in Agno these come as separate messages)
             if hasattr(chunk, 'role') and chunk.role == 'tool':
@@ -480,7 +485,6 @@ def stream_agent_response(
                     if tool_call_id in tool_name_by_id:
                         tool_name = tool_name_by_id[tool_call_id]
                     yield format_sse_tool_result(tool_call_id, tool_result)
-                    thinking_steps.append({"type": "tool_result", "name": tool_name})
             # Avoid processing nested message arrays here: stream_events already emits tool events
             # and this path tends to duplicate / mis-correlate tool call ids.
         
@@ -516,7 +520,6 @@ def stream_agent_response(
             conversation_id=conversation_id,
             role="assistant",
             content=full_content,
-            thinking_steps=thinking_steps if thinking_steps else None,
             artifacts=artifacts if artifacts else None
         )
         
@@ -550,6 +553,13 @@ def chat(request: ChatRequest):
         conversation_id = request.conversation_id
     else:
         conversation_id = db.create_conversation(first_message=request.message)
+
+    # Debug: log conversation id and history size
+    try:
+        history_count = len(db.get_conversation_history(conversation_id))
+    except Exception:
+        history_count = -1
+    print(f"[CHAT] conversation_id={conversation_id} history_count={history_count}")
     
     return StreamingResponse(
         stream_agent_response(request.message, conversation_id),
@@ -570,6 +580,8 @@ def chat_ui(request: ChatRequest):
 
     This is compatible with @ai-sdk/react DefaultChatTransport + AI Elements examples.
     """
+    import sys
+    
     db = get_db()
 
     if request.conversation_id:
@@ -578,6 +590,12 @@ def chat_ui(request: ChatRequest):
         conversation_id = request.conversation_id
     else:
         conversation_id = db.create_conversation(first_message=request.message)
+
+    try:
+        history_count = len(db.get_conversation_history(conversation_id))
+    except Exception:
+        history_count = -1
+    print(f"[STREAM] Creating StreamingResponse for conversation {conversation_id} history_count={history_count}")
 
     return StreamingResponse(
         stream_agent_response_ui(request.message, conversation_id),

@@ -44,23 +44,9 @@ export async function GET(
 
         // Transform messages to AI SDK UIMessage format
         const uiMessages = (data.messages || []).map((msg: any) => ({
-            id: msg.id || crypto.randomUUID(),
+            id: String(msg.id) || crypto.randomUUID(),
             role: msg.role,
             parts: [
-                // Persisted tool invocations (if any) as tool parts so they survive reload.
-                ...(Array.isArray(msg.thinking_steps)
-                    ? msg.thinking_steps
-                        .filter((s: any) => s && s.type === 'tool' && s.toolCallId && s.toolName)
-                        .map((s: any) => ({
-                            type: 'dynamic-tool',
-                            toolCallId: String(s.toolCallId),
-                            toolName: String(s.toolName),
-                            state: s.state || (s.errorText ? 'output-error' : 'output-available'),
-                            input: s.input,
-                            output: s.output,
-                            errorText: s.errorText,
-                        }))
-                    : []),
                 { type: 'text', text: msg.content || '' },
                 // Include artifacts (if any) as file parts so they can render in AI Elements.
                 ...(Array.isArray(msg.artifacts)
@@ -72,7 +58,7 @@ export async function GET(
                     }))
                     : []),
             ],
-            createdAt: msg.created_at ? new Date(msg.created_at) : new Date(),
+            createdAt: msg.timestamp ? new Date(msg.timestamp) : new Date(),
         }));
 
         return new Response(JSON.stringify({

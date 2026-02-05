@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useChat, type UIMessage, Chat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -77,7 +77,11 @@ function renderPart(part: UIMessage['parts'][number], idx: number) {
     if (part.type === 'reasoning') {
         if (!part.text) return null;
         return (
-            <Reasoning key={`reasoning-${idx}`} isStreaming={part.state === 'streaming'}>
+            <Reasoning
+                key={`reasoning-${idx}`}
+                isStreaming={part.state === 'streaming'}
+                defaultOpen={false}
+            >
                 <ReasoningTrigger />
                 <ReasoningContent>{part.text}</ReasoningContent>
             </Reasoning>
@@ -121,7 +125,7 @@ function renderPart(part: UIMessage['parts'][number], idx: number) {
         return (
             <Tool
                 key={`tool-${(toolPart as any).toolCallId ?? idx}`}
-                defaultOpen={isLive}
+                defaultOpen={false}
             >
                 <ToolHeader
                     type={toolPart.type as any}
@@ -149,52 +153,19 @@ export function ChatPage({ conversationId }: ChatPageProps) {
     const { refreshConversations, setActiveConversation } = useConversation();
 
     const [input, setInput] = useState('');
-    const [seedMessages, setSeedMessages] = useState<UIMessage[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-
-    // Load history (as UIMessage objects) from our Next.js proxy route.
-    useEffect(() => {
-        let cancelled = false;
-
-        const load = async () => {
-            if (!conversationId) {
-                setSeedMessages([]);
-                return;
-            }
-
-            setIsHistoryLoading(true);
-            try {
-                const res = await fetch(`/api/conversations/${conversationId}`, { cache: 'no-store' });
-                if (!res.ok) return;
-
-                const data = await res.json();
-                const msgs = Array.isArray(data.messages) ? (data.messages as UIMessage[]) : [];
-                if (!cancelled) {
-                    setSeedMessages(msgs);
-                }
-            } finally {
-                if (!cancelled) {
-                    setIsHistoryLoading(false);
-                }
-            }
-        };
-
-        load();
-        return () => {
-            cancelled = true;
-        };
-    }, [conversationId]);
-
-    // Create a stable key that only changes when we switch conversations
-    const chatKey = conversationId ?? 'new';
+    const previousConversationIdRef = useRef<string | null>(conversationId ?? null);
+    const [chatKey, setChatKey] = useState<string>(conversationId ?? 'new');
+    const preserveChatKeyRef = useRef(false);
+    const conversationIdRef = useRef<string | null>(conversationId ?? null);
 
     const chat = useMemo(() => {
         return new Chat<UIMessage>({
             id: chatKey,
-            messages: seedMessages,
+            messages: [],
             transport: new DefaultChatTransport<UIMessage>({
                 api: '/api/chat',
-                body: { conversationId: conversationId ?? null },
+                body: () => ({ conversationId: conversationIdRef.current }),
             }),
             onError: (err) => {
                 console.error('chat error:', err);
@@ -209,10 +180,11 @@ export function ChatPage({ conversationId }: ChatPageProps) {
             },
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chatKey, seedMessages]);
+    }, [chatKey]);
 
     const {
         messages,
+        setMessages,
         sendMessage,
         regenerate,
         stop,
@@ -220,6 +192,73 @@ export function ChatPage({ conversationId }: ChatPageProps) {
     } = useChat({ chat, experimental_throttle: 0 });
 
     const isStreaming = status === 'submitted' || status === 'streaming';
+
+    // Reset input when switching conversations (without remounting the page).
+    useEffect(() => {
+        setInput('');
+    }, [conversationId]);
+
+    useEffect(() => {
+        conversationIdRef.current = conversationId ?? null;
+    }, [conversationId]);
+
+    useEffect(() => {
+        const isAssigningNewId =
+            previousConversationIdRef.current === null &&
+            conversationId &&
+            messages.length > 0;
+
+        if (isAssigningNewId) {
+            preserveChatKeyRef.current = true;
+            return;
+        }
+
+        if (preserveChatKeyRef.current && previousConversationIdRef.current === conversationId) {
+            return;
+        }
+
+        preserveChatKeyRef.current = false;
+        setChatKey(conversationId ?? 'new');
+    }, [conversationId, messages.length]);
+
+    // Load history (as UIMessage objects) from our Next.js proxy route.
+    useEffect(() => {
+        let cancelled = false;
+
+        const load = async () => {
+            if (!conversationId) {
+                // If we explicitly switched away from an existing conversation, clear local messages.
+                if (previousConversationIdRef.current) {
+                    setMessages([]);
+                }
+                previousConversationIdRef.current = conversationId ?? null;
+                setIsHistoryLoading(false);
+                return;
+            }
+
+            setIsHistoryLoading(true);
+            try {
+                const res = await fetch(`/api/conversations/${conversationId}`, { cache: 'no-store' });
+                if (!res.ok) return;
+
+                const data = await res.json();
+                const msgs = Array.isArray(data.messages) ? (data.messages as UIMessage[]) : [];
+                if (!cancelled) {
+                    setMessages(msgs);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsHistoryLoading(false);
+                }
+                previousConversationIdRef.current = conversationId ?? null;
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [conversationId, setMessages]);
 
     const handleSubmit = (message: PromptInputMessage) => {
         if (!message.text?.trim() || isStreaming) return;
@@ -239,9 +278,28 @@ export function ChatPage({ conversationId }: ChatPageProps) {
     };
 
     const hasMessages = messages.length > 0;
+    const lastMessage = messages[messages.length - 1];
+    const lastMessageHasRenderableParts =
+        lastMessage?.role === 'assistant' &&
+        lastMessage.parts.some((p) => {
+            if (p.type === 'text') {
+                return Boolean((p as any).text);
+            }
+            if (p.type === 'reasoning') {
+                return Boolean((p as any).text);
+            }
+            if (p.type === 'file' || p.type === 'source-url' || p.type === 'source-document') {
+                return true;
+            }
+            if (p.type === 'dynamic-tool' || p.type.startsWith('tool-')) {
+                return true;
+            }
+            return false;
+        });
+    const showInlineTypingIndicator = isStreaming && !lastMessageHasRenderableParts;
 
     // Loading state
-    if (isHistoryLoading) {
+    if (isHistoryLoading && !hasMessages) {
         return (
             <div className="flex items-center justify-center h-full">
                 <TypingIndicator />
@@ -295,11 +353,13 @@ export function ChatPage({ conversationId }: ChatPageProps) {
                         </Message>
                     ))}
 
-                    {isStreaming && !messages[messages.length - 1]?.parts.some(p =>
-                        (p.type === 'reasoning' && p.state === 'streaming') ||
-                        (p.type.startsWith('tool-') && (p as any).state?.includes('streaming')) ||
-                        (p.type === 'dynamic-tool' && (p as any).state?.includes('streaming'))
-                    ) && <TypingIndicator />}
+                    {showInlineTypingIndicator && (
+                            <Message from="assistant">
+                                <MessageContent>
+                                    <TypingIndicator />
+                                </MessageContent>
+                            </Message>
+                        )}
                 </ConversationContent>
                 <ConversationScrollButton />
             </Conversation>
@@ -328,14 +388,14 @@ export function ChatPage({ conversationId }: ChatPageProps) {
                                     <PromptInputButton>
                                         <MicIcon className="size-5" />
                                     </PromptInputButton>
-                                    <PromptInputSubmit
-                                        status={isStreaming ? 'streaming' : 'ready'}
-                                        onStop={stop}
-                                        disabled={!input.trim() || isStreaming}
-                                    />
-                                </PromptInputActions>
-                            </PromptInputFooter>
-                        </PromptInputBody>
+                                <PromptInputSubmit
+                                    status={isStreaming ? 'streaming' : 'ready'}
+                                    onStop={stop}
+                                    disabled={!input.trim() || isStreaming}
+                                />
+                            </PromptInputActions>
+                        </PromptInputFooter>
+                    </PromptInputBody>
                     </PromptInput>
                 </div>
             </div>

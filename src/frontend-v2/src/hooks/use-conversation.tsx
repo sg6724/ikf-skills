@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Artifact {
     filename: string;
@@ -20,7 +21,7 @@ interface Conversation {
 interface ConversationContextType {
     // Conversation management
     activeConversationId: string | null;
-    setActiveConversation: (id: string | null) => void;
+    setActiveConversation: (id: string | null, options?: { updateUrl?: boolean }) => void;
     conversations: Conversation[];
     refreshConversations: () => Promise<void>;
 
@@ -31,8 +32,16 @@ interface ConversationContextType {
 
 const ConversationContext = createContext<ConversationContextType | null>(null);
 
-export function ConversationProvider({ children }: { children: ReactNode }) {
-    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+interface ConversationProviderProps {
+    children: ReactNode;
+    initialConversationId?: string | null;
+}
+
+export function ConversationProvider({ children, initialConversationId }: ConversationProviderProps) {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(initialConversationId ?? null);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
 
@@ -59,9 +68,27 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
         refreshConversations();
     }, []);
 
-    const setActiveConversation = useCallback((id: string | null) => {
+    // Set active conversation with optional URL update
+    const setActiveConversation = useCallback((id: string | null, options?: { updateUrl?: boolean }) => {
         setActiveConversationId(id);
-    }, []);
+
+        // Update URL by default when switching conversations
+        const shouldUpdateUrl = options?.updateUrl !== false;
+
+        if (shouldUpdateUrl) {
+            if (id) {
+                // Navigate to /c/{id} for shareable URL
+                if (pathname !== `/c/${id}`) {
+                    router.push(`/c/${id}`);
+                }
+            } else {
+                // Navigate to root for new chat
+                if (pathname !== '/') {
+                    router.push('/');
+                }
+            }
+        }
+    }, [router, pathname]);
 
     const value = useMemo<ConversationContextType>(() => ({
         activeConversationId,
