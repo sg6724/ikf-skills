@@ -14,7 +14,6 @@ import os
 import sys
 from pathlib import Path
 from textwrap import dedent
-from agno.agent import Agent
 
 
 HARNESS_DIR = Path(__file__).resolve().parent
