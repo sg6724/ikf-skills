@@ -15,10 +15,15 @@ from pathlib import Path
 import threading
 
 from app.config import settings
+from app.paths import BACKEND_ROOT
 
 
-# Database file location
-DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "ikf_chat.db"
+def _resolve_db_path() -> Path:
+    """Resolve DB path from settings, supporting absolute or backend-root-relative paths."""
+    configured = Path(settings.sqlite_db_path).expanduser()
+    if configured.is_absolute():
+        return configured
+    return BACKEND_ROOT / configured
 
 
 @dataclass
@@ -60,14 +65,15 @@ class ConversationDB:
     _local = threading.local()
     
     def __init__(self):
+        self.db_path = _resolve_db_path()
         # Ensure data directory exists
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     
     def _get_connection(self) -> sqlite3.Connection:
         """Get thread-local database connection"""
         if not hasattr(self._local, 'connection') or self._local.connection is None:
-            self._local.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+            self._local.connection = sqlite3.connect(str(self.db_path), check_same_thread=False)
             self._local.connection.row_factory = sqlite3.Row
             # Enforce referential integrity for cascading deletes and consistency.
             self._local.connection.execute("PRAGMA foreign_keys = ON")

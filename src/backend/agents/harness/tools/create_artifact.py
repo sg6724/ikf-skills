@@ -5,6 +5,7 @@ Creates files in the active request artifact directory.
 
 from pathlib import Path
 from datetime import datetime, timezone
+import uuid
 import re
 from agno.tools import tool
 from runtime_context import current_artifact_dir, current_artifact_run_id, current_conversation_id
@@ -61,9 +62,10 @@ def create_artifact(title: str, content: str, artifact_type: str = "document") -
     # Create filename from title
     base_filename = sanitize_filename(title) or "artifact"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    unique_suffix = uuid.uuid4().hex[:8]
     run_id = current_artifact_run_id.get()
     suffix = f"-{run_id}" if run_id else ""
-    filename = f"{base_filename}{suffix}-{timestamp}.md"
+    filename = f"{base_filename}{suffix}-{timestamp}-{unique_suffix}.md"
     
     # Build full markdown content with metadata header
     full_content = f"""---

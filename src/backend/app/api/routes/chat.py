@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from app.agent_factory import create_agent
 from app.db.conversations import get_db
 from app.paths import ARTIFACTS_DIR
-from runtime_context import current_artifact_dir, current_artifact_run_id, current_conversation_id
+from agents.harness.runtime_context import current_artifact_dir, current_artifact_run_id, current_conversation_id
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
