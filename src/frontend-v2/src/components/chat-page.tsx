@@ -62,8 +62,6 @@ interface ChatPageProps {
     conversationId?: string | null;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
 type RenderToolPart = ToolPart & {
     toolCallId?: string;
     toolName?: string;
@@ -78,6 +76,19 @@ function getToolName(part: ToolPart): string {
     }
 
     return part.type.split('-').slice(1).join('-') || 'tool';
+}
+
+function toSameOriginPath(rawUrl: string): string | null {
+    if (rawUrl.startsWith('/')) return rawUrl;
+    if (rawUrl.startsWith('api/')) return `/${rawUrl}`;
+    if (!rawUrl.startsWith('http')) return null;
+
+    try {
+        const parsed = new URL(rawUrl);
+        return `${parsed.pathname}${parsed.search}`;
+    } catch {
+        return null;
+    }
 }
 
 function renderPart(part: UIMessage['parts'][number], idx: number) {
@@ -112,7 +123,7 @@ function renderPart(part: UIMessage['parts'][number], idx: number) {
         const filename =
             part.filename ||
             (typeof part.url === 'string' ? decodeURIComponent(part.url.split('/').pop() || 'artifact') : 'artifact');
-        const url = part.url.startsWith('http') ? part.url : `${API_URL}${part.url}`;
+        const url = toSameOriginPath(part.url);
         return (
             <Artifact key={`file-${idx}`}>
                 <ArtifactHeader>
@@ -124,7 +135,10 @@ function renderPart(part: UIMessage['parts'][number], idx: number) {
                         <ArtifactAction
                             tooltip="Download"
                             icon={DownloadIcon}
-                            onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                            onClick={() => {
+                                if (!url) return;
+                                window.open(url, '_blank', 'noopener,noreferrer');
+                            }}
                         />
                     </ArtifactActions>
                 </ArtifactHeader>

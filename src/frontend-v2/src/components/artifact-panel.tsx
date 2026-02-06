@@ -11,7 +11,17 @@ import {
     FileIcon,
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+function toSameOriginPath(rawUrl: string | undefined): string | null {
+    if (!rawUrl) return null;
+    if (rawUrl.startsWith('/')) return rawUrl;
+
+    try {
+        const parsed = new URL(rawUrl);
+        return `${parsed.pathname}${parsed.search}`;
+    } catch {
+        return rawUrl.startsWith('api/') ? `/${rawUrl}` : null;
+    }
+}
 
 export function ArtifactPanel() {
     const { selectedArtifact, setSelectedArtifact, activeConversationId } = useConversation();
@@ -29,9 +39,17 @@ export function ArtifactPanel() {
     const isMarkdown = extension === 'md';
     const isPreviewable = isMarkdown; // Add more formats as needed
 
-    const downloadUrl = `${API_URL}/api/artifacts/${activeConversationId}/${encodeURIComponent(selectedArtifact.filename)}`;
+    const artifactConversationId = selectedArtifact.conversationId || activeConversationId;
+    const fallbackPath = artifactConversationId
+        ? `/api/artifacts/${encodeURIComponent(artifactConversationId)}/${encodeURIComponent(selectedArtifact.filename)}`
+        : null;
+    const downloadUrl = toSameOriginPath(selectedArtifact.url) || fallbackPath;
 
     const handleDownload = async () => {
+        if (!downloadUrl) {
+            console.error('Download failed: missing artifact URL');
+            return;
+        }
         try {
             const response = await fetch(downloadUrl);
             const blob = await response.blob();
@@ -75,7 +93,7 @@ export function ArtifactPanel() {
 
             {/* Content */}
             <ScrollArea className="flex-1">
-                {isPreviewable ? (
+                {isPreviewable && downloadUrl ? (
                     <div className="p-4">
                         <MarkdownPreview key={downloadUrl} url={downloadUrl} />
                     </div>
