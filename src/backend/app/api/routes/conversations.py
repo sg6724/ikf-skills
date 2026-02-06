@@ -5,18 +5,15 @@ Endpoints for listing, retrieving, and deleting conversations.
 """
 
 import shutil
-from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.db.conversations import get_db, ConversationSummary, Conversation, Message
+from app.paths import ARTIFACTS_DIR
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
-
-# Artifacts directory (same as in chat.py)
-ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "artifacts"
 
 
 # Pydantic models for API responses

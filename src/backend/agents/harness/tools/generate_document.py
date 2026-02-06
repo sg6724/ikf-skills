@@ -1,17 +1,15 @@
 """
 Document generation tools.
-
-IMPORTANT: All generated documents are written to the tmp/ directory
-so that chat.py can detect and serve them as artifacts.
 """
 
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from agno.tools import tool
+from runtime_context import current_artifact_dir, current_artifact_run_id, current_conversation_id
 
 
-# Directory where artifacts are temporarily stored before being moved to conversation artifacts
+# Fallback output for standalone CLI usage (outside API request context).
 TMP_DIR = Path(__file__).resolve().parent.parent / "tmp"
 
 
@@ -27,13 +25,17 @@ def sanitize_filename(filename: str) -> str:
     name="generate_word_document",
     description="""Generate a Word (.docx) document from markdown content. 
 Use this when the user explicitly asks for a Word document or .docx file.
-The document will be displayed in the chat as an artifact that users can download.
+The document will be displayed in the chat as an artifact card.
 
 Note: For preview purposes, prefer create_artifact (markdown) first, 
-then let users export to DOCX via the UI.""",
-    show_result=True
+then let users export to DOCX via the UI.
+
+Important response rule:
+- Do not include file names, URLs, or download labels in assistant text.
+- Return only substantive analysis/content in prose.""",
+    show_result=False
 )
-def generate_word_document(content: str, title: str = None) -> str:
+def generate_word_document(content: str, title: str = None) -> dict:
     """
     Generate a Word document from markdown content.
     
@@ -42,18 +44,20 @@ def generate_word_document(content: str, title: str = None) -> str:
         title: Document title (used for filename and header)
         
     Returns:
-        str: Confirmation message about the generated document
+        dict: Artifact metadata for the chat streaming layer
     """
     import importlib.util
     
-    # Ensure tmp directory exists
-    TMP_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir = current_artifact_dir.get() or TMP_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate filename from title
     base_filename = sanitize_filename(title) if title else "document"
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    filename = f"{base_filename}-{timestamp}.docx"
-    output_path = TMP_DIR / filename
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    run_id = current_artifact_run_id.get()
+    suffix = f"-{run_id}" if run_id else ""
+    filename = f"{base_filename}{suffix}-{timestamp}.docx"
+    output_path = output_dir / filename
     
     # Find and load the generator module
     current_dir = Path(__file__).resolve().parent
@@ -61,20 +65,37 @@ def generate_word_document(content: str, title: str = None) -> str:
     generator_path = project_root / "skills" / "general" / "docxmaker" / "scripts" / "generator.py"
     
     if not generator_path.exists():
-        return f"Error: Document generator not found at {generator_path}"
+        return {
+            "status": "error",
+            "message": f"Document generator not found at {generator_path}",
+        }
     
     spec = importlib.util.spec_from_file_location("generator", generator_path)
     generator_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator_module)
     
     try:
-        file_path = generator_module.create_docx_from_markdown(
+        generator_module.create_docx_from_markdown(
             content=content,
             output_file=str(output_path),
             title=title
         )
-        return f"Created Word document: **{title or 'Document'}**\n\nThe document is available for download in the chat."
+        conversation_id = current_conversation_id.get()
+        artifact = {
+            "filename": filename,
+            "type": "docx",
+            "size_bytes": output_path.stat().st_size,
+            "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        }
+        if conversation_id:
+            artifact["url"] = f"/api/artifacts/{conversation_id}/{filename}"
+        return {
+            "status": "created",
+            "message": f"Created Word document: {title or 'Document'}",
+            "artifact": artifact,
+        }
     except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        return f"Error generating document: {str(e)}\n{error_details}"
+        return {
+            "status": "error",
+            "message": f"Error generating document: {str(e)}",
+        }

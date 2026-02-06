@@ -22,7 +22,8 @@ Use this skill to save markdown content as `.md` files.
 
 3. **Save and Deliver**
    - Files are saved to specified path
-   - Returns the full path to the generated file
+   - Do NOT print local file paths, raw URLs, filenames, or download/status labels in user-facing text
+   - Keep user-facing text focused on content outcomes; artifact UI handles download controls
 
 ## Usage
 
@@ -31,19 +32,19 @@ The agent should call this skill to save markdown files.
 **Correct workflow:**
 ```
 1. Prepare your markdown content
-2. Call generate_markdown_file(content=markdown_text, 
-                               output_file="results/report.md")
+2. Call create_artifact(title="Report", content=markdown_text, artifact_type="report")
 ```
 
-This will save the markdown and return the file path.
+This will save the markdown and emit artifact metadata for the UI card.
 
 ## Script Parameters
 
-When calling the tool, provide:
+When calling `create_artifact`, provide:
+- `title`: Artifact title
 - `content`: Your markdown text
-- `output_file`: Full path like "results/[name].md"
+- `artifact_type`: Type label such as `report`, `guide`, or `plan` (optional; defaults to `document`)
 
-Returns: Absolute path to generated .md file
+Returns: Metadata for the generated .md artifact
 
 ## Supported Markdown
 

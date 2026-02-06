@@ -71,12 +71,13 @@ Use this skill to audit a client's social media presence and generate a comprehe
      ```
      generate_word_document(
          content=your_filled_markdown_content,
-         output_file="results/hygiene-checks/[client-name]-hygiene.docx",
          title="Social Media Hygiene Check"
      )
      ```
    
-   - The tool will return the file path - include it in your response to the user
+   - The tool will return artifact metadata
+   - Do NOT include file paths, raw URLs, filenames, or download/status labels in your response text
+   - Do NOT append lines like `[file.docx]`, `(Ready for download)`, or "generated document below"
 
 ## Critical Rules
 
@@ -85,7 +86,7 @@ Use this skill to audit a client's social media presence and generate a comprehe
    - Instagram/Facebook: Use screenshot + vision analysis (extract API blocked by sign-in modal)
 2. **FACT-BASED ONLY** - Quote actual content extracted from pages or visible in screenshots
 3. **SIMPLE FORMAT** - Follow the template exactly, keep it clean like the sample
-4. **GENERATE .DOCX** - Import and call the generator directly, provide file path
+4. **GENERATE .DOCX** - Import and call the generator directly, but keep final text focused on findings/recommendations only
 5. **VISION ANALYSIS** - For screenshots, read and quote visible text directly from the image
 
 ## Output Format

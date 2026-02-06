@@ -24,7 +24,8 @@ Use this skill to convert markdown content into properly formatted Word document
 3. **Save and Deliver**
    - Documents are saved to `results/` directory
    - Organized by subdirectories (e.g., `results/hygiene-checks/`)
-   - Returns the full path to the generated file
+   - Do NOT print local file paths, raw URLs, filenames, or download/status labels in user-facing text
+   - Keep user-facing text focused on content outcomes; artifact UI handles download controls
 
 ## Usage
 
@@ -33,22 +34,18 @@ The agent should call this skill to generate Word documents.
 **Correct workflow:**
 ```
 1. Prepare your markdown content
-2. Call get_skill_script("docxmaker", "scripts/generator.py", execute=True, 
-                         arguments={"content": markdown_text, 
-                                   "output_file": "results/hygiene-checks/client.docx",
-                                   "title": "Hygiene Report"})
+2. Call generate_word_document(content=markdown_text, title="Hygiene Report")
 ```
 
-This will execute the generator script and return the file path.
+This will execute the generator script and emit artifact metadata for the UI card.
 
 ## Script Parameters
 
-When calling `get_skill_script`, provide:
+When calling `generate_word_document`, provide:
 - `content`: Your markdown text
-- `output_file`: Full path like "results/hygiene-checks/[client]-report.docx"
 - `title`: Document title (optional)
 
-Returns: Absolute path to generated .docx file
+Returns: Metadata for the generated .docx artifact
 
 - Headings (H1-H6)
 - Bold and italic text
