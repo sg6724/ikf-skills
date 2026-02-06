@@ -24,7 +24,10 @@ class Settings(BaseSettings):
     # Database
     sqlite_db_path: str = "data/ikf_chat.db"
     
+    # Safety controls
+    allow_unauthenticated_conversation_delete: bool = False
 
+    
     
     # Firestore (stub for future)
     firestore_project_id: Optional[str] = None

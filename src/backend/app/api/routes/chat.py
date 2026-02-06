@@ -191,6 +191,7 @@ def stream_agent_response(
         reasoning_part_id = "reasoning-1"
         text_started = False
         reasoning_started = False
+        run_failed = False
         full_content = ""
         artifacts: list[dict[str, Any]] = []
         emitted_artifact_urls: set[str] = set()
@@ -313,6 +314,7 @@ def stream_agent_response(
 
                 if event == RunEvent.run_error.value:
                     error_text = getattr(ev, "content", None) or "Run error"
+                    run_failed = True
                     yield _format_sse_json({"type": "error", "errorText": str(error_text)})
                     break
 
@@ -331,14 +333,17 @@ def stream_agent_response(
                 yield _format_sse_json({"type": "text-end", "id": text_part_id})
 
             yield _format_sse_json({"type": "finish-step"})
-            yield _format_sse_json({"type": "finish", "finishReason": "stop"})
-
-            db.add_message(
-                conversation_id=conversation_id,
-                role="assistant",
-                content=full_content,
-                artifacts=artifacts if artifacts else None,
+            yield _format_sse_json(
+                {"type": "finish", "finishReason": "error" if run_failed else "stop"}
             )
+
+            if not run_failed:
+                db.add_message(
+                    conversation_id=conversation_id,
+                    role="assistant",
+                    content=full_content,
+                    artifacts=artifacts if artifacts else None,
+                )
         except Exception as exc:
             yield _format_sse_json({"type": "error", "errorText": f"Error: {str(exc)}"})
             yield _format_sse_json({"type": "finish", "finishReason": "error"})
