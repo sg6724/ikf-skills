@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useConversation } from '@/hooks/use-conversation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,7 +11,17 @@ import {
     FileIcon,
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+function toSameOriginPath(rawUrl: string | undefined): string | null {
+    if (!rawUrl) return null;
+    if (rawUrl.startsWith('/')) return rawUrl;
+
+    try {
+        const parsed = new URL(rawUrl);
+        return `${parsed.pathname}${parsed.search}`;
+    } catch {
+        return rawUrl.startsWith('api/') ? `/${rawUrl}` : null;
+    }
+}
 
 export function ArtifactPanel() {
     const { selectedArtifact, setSelectedArtifact, activeConversationId } = useConversation();
@@ -28,9 +39,17 @@ export function ArtifactPanel() {
     const isMarkdown = extension === 'md';
     const isPreviewable = isMarkdown; // Add more formats as needed
 
-    const downloadUrl = `${API_URL}/api/artifacts/${activeConversationId}/${encodeURIComponent(selectedArtifact.filename)}`;
+    const artifactConversationId = selectedArtifact.conversationId || activeConversationId;
+    const fallbackPath = artifactConversationId
+        ? `/api/artifacts/${encodeURIComponent(artifactConversationId)}/${encodeURIComponent(selectedArtifact.filename)}`
+        : null;
+    const downloadUrl = toSameOriginPath(selectedArtifact.url) || fallbackPath;
 
     const handleDownload = async () => {
+        if (!downloadUrl) {
+            console.error('Download failed: missing artifact URL');
+            return;
+        }
         try {
             const response = await fetch(downloadUrl);
             const blob = await response.blob();
@@ -74,9 +93,9 @@ export function ArtifactPanel() {
 
             {/* Content */}
             <ScrollArea className="flex-1">
-                {isPreviewable ? (
+                {isPreviewable && downloadUrl ? (
                     <div className="p-4">
-                        <MarkdownPreview url={downloadUrl} />
+                        <MarkdownPreview key={downloadUrl} url={downloadUrl} />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -102,13 +121,36 @@ function MarkdownPreview({ url }: { url: string }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useState(() => {
+    useEffect(() => {
+        let cancelled = false;
+
         fetch(url)
-            .then((res) => res.text())
-            .then(setContent)
-            .catch((e) => setError(e.message))
-            .finally(() => setLoading(false));
-    });
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`Failed to load preview (${res.status})`);
+                }
+                return res.text();
+            })
+            .then((text) => {
+                if (!cancelled) {
+                    setContent(text);
+                }
+            })
+            .catch((e) => {
+                if (!cancelled) {
+                    setError(e instanceof Error ? e.message : 'Failed to load preview');
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [url]);
 
     if (loading) {
         return <div className="text-muted-foreground">Loading...</div>;
@@ -124,5 +166,3 @@ function MarkdownPreview({ url }: { url: string }) {
         </div>
     );
 }
-
-import { useState } from 'react';

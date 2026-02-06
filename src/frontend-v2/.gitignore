@@ -21,6 +21,8 @@ node_modules
 local/
 .agents/
 artifacts/
+!src/app/api/artifacts/
+!src/app/api/artifacts/**
 
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
@@ -64,6 +66,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
 
 

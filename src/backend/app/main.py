@@ -16,10 +16,10 @@ Endpoints:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from app.config import settings
 from app.api.routes import chat, conversations, artifacts, export
+from app.paths import ARTIFACTS_DIR
 
 
 @asynccontextmanager
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     
     # Ensure required directories exist
     # Ensure artifact directory exists
-    Path("artifacts").mkdir(exist_ok=True)
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     
     yield
     

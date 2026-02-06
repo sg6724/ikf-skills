@@ -13,16 +13,25 @@ export const revalidate = 0;
 
 export const maxDuration = 300; // Allow up to 5 minutes for long agent executions
 
+interface ChatPart {
+    type: string;
+    text?: string;
+}
+
+interface ChatRequestBody {
+    messages?: Array<{
+        content?: string | ChatPart[];
+        parts?: ChatPart[];
+    }>;
+    conversationId?: string;
+    conversation_id?: string;
+}
+
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+        const body = await req.json() as ChatRequestBody;
 
-        // Debug log to see what AI SDK sends
-        console.log('Chat API received:', JSON.stringify(body, null, 2));
-
-        // Extract message from various possible formats:
-        // 1. AI SDK useChat sends { messages: [...], ... }
-        // 2. Direct format: { message: "...", conversation_id: "..." }
+        // Extract message from the AI SDK request shape.
         let message: string | undefined;
 
         // Check for AI SDK format with messages array
@@ -32,23 +41,15 @@ export async function POST(req: NextRequest) {
             if (typeof lastMessage?.content === 'string') {
                 message = lastMessage.content;
             } else if (Array.isArray(lastMessage?.content)) {
-                // Handle content parts (e.g., [{ type: 'text', text: '...' }])
-                const textPart = lastMessage.content.find((p: any) => p.type === 'text');
+                const textPart = lastMessage.content.find((p) => p.type === 'text');
                 message = textPart?.text;
             } else if (lastMessage?.parts) {
-                // Handle parts format
-                const textPart = lastMessage.parts.find((p: any) => p.type === 'text');
+                const textPart = lastMessage.parts.find((p) => p.type === 'text');
                 message = textPart?.text;
             }
         }
 
-        // Fallback to direct message field
-        if (!message && body.message) {
-            message = body.message;
-        }
-
-        // Extract conversation ID from body extras
-        const conversationId = body.conversationId || body.conversation_id || body.body?.conversationId;
+        const conversationId = body.conversationId || body.conversation_id;
 
         if (!message) {
             return new Response(
@@ -57,13 +58,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.log('Forwarding to backend:', { message, conversationId });
-
         // Proxy the backend SSE stream.
         //
         // Note: Next.js route handlers + undici fetch can buffer upstream SSE until enough bytes arrive.
         // Using node http(s) request streams avoids that and forwards chunks immediately.
-        const backend = new URL('/api/chat/ui', BACKEND_URL);
+        const backend = new URL('/api/chat', BACKEND_URL);
         const payload = JSON.stringify({
             message,
             conversation_id: conversationId || null,

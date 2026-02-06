@@ -24,6 +24,24 @@ def _parse_skill_frontmatter(content: str) -> dict:
     return {}
 
 
+def _resolve_skill_reference_path(skill_root: Path, ref_path: str) -> tuple[Path | None, bool]:
+    """Resolve a reference path and ensure it stays inside the skill root."""
+    root = skill_root.resolve()
+    try:
+        candidate = (root / ref_path).resolve()
+    except OSError:
+        return None, False
+
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None, True
+
+    if candidate.exists() and candidate.is_file():
+        return candidate, False
+    return None, False
+
+
 @tool(
     name="discover_skills",
     description="Discover available skills. Returns a list of skill names and descriptions organized by domain. Call this to see what skills you can use.",
@@ -141,14 +159,27 @@ def get_skill_reference(skill_name: str, ref_path: str, domains: list[str] = Non
     """
     if not SKILLS_BASE.exists():
         return f"Error: Skills directory not found at {SKILLS_BASE}"
+    if not ref_path:
+        return "Error: Reference path is required"
     
     # If no domains specified, search all
     if domains is None:
         domains = [d.name for d in SKILLS_BASE.iterdir() if d.is_dir()]
     
+    blocked_escape_attempt = False
     for domain in domains:
-        full_path = SKILLS_BASE / domain / skill_name / ref_path
-        if full_path.exists():
+        skill_root = SKILLS_BASE / domain / skill_name
+        if not skill_root.exists() or not skill_root.is_dir():
+            continue
+
+        full_path, escaped_root = _resolve_skill_reference_path(skill_root, ref_path)
+        if escaped_root:
+            blocked_escape_attempt = True
+            continue
+        if full_path is not None:
             return full_path.read_text(encoding='utf-8')
-    
+
+    if blocked_escape_attempt:
+        return "Error: Invalid reference path. Path must stay inside the skill directory."
+
     return f"Error: Reference '{ref_path}' not found in skill '{skill_name}'"

@@ -66,11 +66,14 @@ export const TaskTrigger = ({
   </CollapsibleTrigger>
 );
 
-export type TaskContentProps = ComponentProps<typeof CollapsibleContent>;
+export type TaskContentProps = ComponentProps<typeof CollapsibleContent> & {
+  inset?: boolean;
+};
 
 export const TaskContent = ({
   children,
   className,
+  inset = true,
   ...props
 }: TaskContentProps) => (
   <CollapsibleContent
@@ -80,7 +83,11 @@ export const TaskContent = ({
     )}
     {...props}
   >
-    <div className="mt-4 space-y-2 border-muted border-l-2 pl-4">
+    <div
+      className={cn(
+        inset ? "mt-4 space-y-2 border-muted border-l-2 pl-4" : "mt-2 space-y-1",
+      )}
+    >
       {children}
     </div>
   </CollapsibleContent>

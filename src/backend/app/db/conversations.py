@@ -15,10 +15,15 @@ from pathlib import Path
 import threading
 
 from app.config import settings
+from app.paths import BACKEND_ROOT
 
 
-# Database file location
-DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "ikf_chat.db"
+def _resolve_db_path() -> Path:
+    """Resolve DB path from settings, supporting absolute or backend-root-relative paths."""
+    configured = Path(settings.sqlite_db_path).expanduser()
+    if configured.is_absolute():
+        return configured
+    return BACKEND_ROOT / configured
 
 
 @dataclass
@@ -60,15 +65,18 @@ class ConversationDB:
     _local = threading.local()
     
     def __init__(self):
+        self.db_path = _resolve_db_path()
         # Ensure data directory exists
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     
     def _get_connection(self) -> sqlite3.Connection:
         """Get thread-local database connection"""
         if not hasattr(self._local, 'connection') or self._local.connection is None:
-            self._local.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+            self._local.connection = sqlite3.connect(str(self.db_path), check_same_thread=False)
             self._local.connection.row_factory = sqlite3.Row
+            # Enforce referential integrity for cascading deletes and consistency.
+            self._local.connection.execute("PRAGMA foreign_keys = ON")
         return self._local.connection
     
     def _init_db(self):
@@ -104,6 +112,10 @@ class ConversationDB:
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_messages_conversation_id 
             ON messages(conversation_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_messages_conversation_timestamp
+            ON messages(conversation_id, timestamp DESC, id DESC)
         """)
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_conversations_updated_at 
@@ -169,32 +181,47 @@ class ConversationDB:
         if total == 0:
             return [], 0
         
-        # Get conversations with message count and preview using JOINs (1 query)
-        # - LEFT JOIN with derived table for message counts (grouped by conversation_id)
-        # - LEFT JOIN with window function ROW_NUMBER() to get the latest message
+        # Get conversations with message count and preview using only paged conversation ids.
+        # This avoids scanning/partitioning all messages for every request.
         cursor.execute("""
-            SELECT 
-                c.id,
-                c.title,
-                c.created_at,
-                c.updated_at,
-                COALESCE(stats.message_count, 0) as message_count,
-                last_msg.preview
-            FROM conversations c
+            WITH paged_conversations AS (
+                SELECT id, title, created_at, updated_at
+                FROM conversations
+                ORDER BY updated_at DESC
+                LIMIT ? OFFSET ?
+            ),
+            message_counts AS (
+                SELECT m.conversation_id, COUNT(*) as message_count
+                FROM messages m
+                JOIN paged_conversations p ON p.id = m.conversation_id
+                GROUP BY m.conversation_id
+            ),
+            latest_messages AS (
+                SELECT
+                    m.conversation_id,
+                    SUBSTR(m.content, 1, 100) as preview,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY m.conversation_id
+                        ORDER BY m.timestamp DESC, m.id DESC
+                    ) as rn
+                FROM messages m
+                JOIN paged_conversations p ON p.id = m.conversation_id
+            )
+            SELECT
+                p.id,
+                p.title,
+                p.created_at,
+                p.updated_at,
+                COALESCE(mc.message_count, 0) as message_count,
+                lm.preview
+            FROM paged_conversations p
+            LEFT JOIN message_counts mc ON mc.conversation_id = p.id
             LEFT JOIN (
-                SELECT conversation_id, COUNT(*) as message_count
-                FROM messages
-                GROUP BY conversation_id
-            ) stats ON stats.conversation_id = c.id
-            LEFT JOIN (
-                SELECT 
-                    conversation_id, 
-                    SUBSTR(content, 1, 100) as preview,
-                    ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY timestamp DESC) as rn
-                FROM messages
-            ) last_msg ON last_msg.conversation_id = c.id AND last_msg.rn = 1
-            ORDER BY c.updated_at DESC
-            LIMIT ? OFFSET ?
+                SELECT conversation_id, preview
+                FROM latest_messages
+                WHERE rn = 1
+            ) lm ON lm.conversation_id = p.id
+            ORDER BY p.updated_at DESC
         """, (limit, offset))
         
         rows = cursor.fetchall()

@@ -5,18 +5,16 @@ Endpoints for listing, retrieving, and deleting conversations.
 """
 
 import shutil
-from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.config import settings
 from app.db.conversations import get_db, ConversationSummary, Conversation, Message
+from app.paths import ARTIFACTS_DIR
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
-
-# Artifacts directory (same as in chat.py)
-ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "artifacts"
 
 
 # Pydantic models for API responses
@@ -122,6 +120,12 @@ def delete_conversation(conversation_id: str):
     - All messages in the conversation
     - Any artifacts/files generated during the conversation
     """
+    if not settings.allow_unauthenticated_conversation_delete:
+        raise HTTPException(
+            status_code=403,
+            detail="Conversation deletion is disabled until authentication is enabled",
+        )
+
     db = get_db()
     
     # Check if exists

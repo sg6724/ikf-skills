@@ -131,7 +131,9 @@ SYSTEM_PROMPT = dedent("""
             - Present polished, high-quality deliverables
             - Structure output according to the template you loaded
             - Include actionable recommendations
-            - If a document is generated, provide the path
+            - If a document/file artifact is generated, do NOT mention download mechanics in response text
+            - Never include filenames, local paths, raw artifact URLs, markdown links, or bracketed file labels
+            - Focus final response text on the substantive deliverable only; the UI handles artifact rendering
 
             ## EXAMPLE FLOW
 
@@ -189,9 +191,8 @@ def create_agent() -> Agent:
             NanoBananaTools(aspect_ratio="1:1"),
             NanoBananaTools(aspect_ratio="9:16"),
         ],
-        # Removed: db = SqliteDb(db_file="agno.db")
-        # Agent is now stateless - conversation history passed from our SQLite DB
-        add_history_to_context=True,
+        # Conversation history is injected by backend chat route from SQLite.
+        add_history_to_context=False,
         markdown=True,
     )
 

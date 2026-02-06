@@ -11,11 +11,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from app.db.conversations import get_db
+from app.paths import ARTIFACTS_DIR
 
 router = APIRouter(prefix="/api/artifacts", tags=["artifacts"])
-
-# Artifacts directory
-ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "artifacts"
 
 # Allowed file extensions for security
 ALLOWED_EXTENSIONS = {'.docx', '.xlsx', '.pdf', '.png', '.jpg', '.jpeg', '.webp', '.csv', '.md', '.txt'}
@@ -117,14 +115,17 @@ def list_all_artifacts(limit: int = 50):
     if not ARTIFACTS_DIR.exists():
         return {"artifacts": [], "total": 0}
     
+    db = get_db()
     all_artifacts = []
     
     # Iterate through all conversation directories
     for conv_dir in ARTIFACTS_DIR.iterdir():
-        if not conv_dir.is_dir() or not conv_dir.name.startswith("conv_"):
+        if not conv_dir.is_dir():
             continue
         
         conversation_id = conv_dir.name
+        if not db.conversation_exists(conversation_id):
+            continue
         
         for file_path in conv_dir.iterdir():
             if file_path.is_file() and file_path.suffix.lower() in ALLOWED_EXTENSIONS:

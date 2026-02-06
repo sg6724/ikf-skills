@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
     } catch (error) {
         console.error('Conversations API error:', error);
         return new Response(
-            JSON.stringify({ error: 'Failed to connect to backend', conversations: [] }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Failed to connect to backend' }),
+            { status: 502, headers: { 'Content-Type': 'application/json' } }
         );
     }
 }

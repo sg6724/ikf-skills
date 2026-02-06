@@ -31,7 +31,11 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
         e.stopPropagation();
         try {
             // Use the Next.js API route proxy instead of direct backend call
-            await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to delete conversation: ${response.status} ${errorText}`);
+            }
             if (activeConversationId === id) {
                 setActiveConversation(null);
             }
