@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useConversation } from '@/hooks/use-conversation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -76,7 +77,7 @@ export function ArtifactPanel() {
             <ScrollArea className="flex-1">
                 {isPreviewable ? (
                     <div className="p-4">
-                        <MarkdownPreview url={downloadUrl} />
+                        <MarkdownPreview key={downloadUrl} url={downloadUrl} />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -102,13 +103,36 @@ function MarkdownPreview({ url }: { url: string }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useState(() => {
+    useEffect(() => {
+        let cancelled = false;
+
         fetch(url)
-            .then((res) => res.text())
-            .then(setContent)
-            .catch((e) => setError(e.message))
-            .finally(() => setLoading(false));
-    });
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`Failed to load preview (${res.status})`);
+                }
+                return res.text();
+            })
+            .then((text) => {
+                if (!cancelled) {
+                    setContent(text);
+                }
+            })
+            .catch((e) => {
+                if (!cancelled) {
+                    setError(e instanceof Error ? e.message : 'Failed to load preview');
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [url]);
 
     if (loading) {
         return <div className="text-muted-foreground">Loading...</div>;
@@ -124,5 +148,3 @@ function MarkdownPreview({ url }: { url: string }) {
         </div>
     );
 }
-
-import { useState } from 'react';

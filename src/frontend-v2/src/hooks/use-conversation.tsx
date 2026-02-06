@@ -45,11 +45,6 @@ export function ConversationProvider({ children, initialConversationId }: Conver
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
 
-    // Clear artifact selection when switching conversations
-    useEffect(() => {
-        setSelectedArtifact(null);
-    }, [activeConversationId]);
-
     const refreshConversations = useCallback(async () => {
         try {
             // Use the Next.js API proxy route instead of direct backend call
@@ -65,8 +60,10 @@ export function ConversationProvider({ children, initialConversationId }: Conver
 
     // Load conversations on mount
     useEffect(() => {
-        refreshConversations();
-    }, []);
+        queueMicrotask(() => {
+            void refreshConversations();
+        });
+    }, [refreshConversations]);
 
     // Set active conversation with optional URL update
     // NOTE: For new conversations receiving their first ID, we use replaceState
@@ -74,6 +71,9 @@ export function ConversationProvider({ children, initialConversationId }: Conver
     // the streaming state (tool calls, reasoning) in the ChatPage component.
     const setActiveConversation = useCallback((id: string | null, options?: { updateUrl?: boolean }) => {
         const previousId = activeConversationId;
+        if (previousId !== id) {
+            setSelectedArtifact(null);
+        }
         setActiveConversationId(id);
 
         // Update URL by default when switching conversations
