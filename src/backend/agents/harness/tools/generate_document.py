@@ -62,7 +62,8 @@ def generate_word_document(content: str, title: str = None) -> dict:
     # Find and load the generator module
     current_dir = Path(__file__).resolve().parent
     project_root = current_dir.parent.parent.parent.parent.parent
-    generator_path = project_root / "skills" / "general" / "docxmaker" / "scripts" / "generator.py"
+    # Repo skill path (skills/docxmaker/...) is the source of truth.
+    generator_path = project_root / "skills" / "docxmaker" / "scripts" / "generator.py"
     
     if not generator_path.exists():
         return {

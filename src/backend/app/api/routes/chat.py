@@ -18,7 +18,14 @@ from pydantic import BaseModel, Field
 from app.agent_factory import create_agent
 from app.db.conversations import get_db
 from app.paths import ARTIFACTS_DIR
-from agents.harness.runtime_context import current_artifact_dir, current_artifact_run_id, current_conversation_id
+# IMPORTANT: Import the same ContextVar instances as the harness tools.
+#
+# The harness tools import these from the top-level `runtime_context` module
+# (because the harness directory is added to sys.path by app.agent_factory).
+# If we import them via a different module path (e.g. `agents.harness.runtime_context`),
+# we end up with a second copy of the module and ContextVars, and tools will fall back
+# to writing into their TMP_DIR (causing 404 on /api/artifacts/... downloads).
+from runtime_context import current_artifact_dir, current_artifact_run_id, current_conversation_id
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
