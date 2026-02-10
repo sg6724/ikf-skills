@@ -1,0 +1,34 @@
+.git
+.github
+
+# Local env/config
+**/.env
+**/.env.*
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+src/backend/.venv/
+
+# Node/Next
+src/frontend-v2/node_modules/
+src/frontend-v2/.next/
+src/frontend-v2/.turbo/
+**/.npm/
+**/.yarn/
+**/npm-debug.log
+**/yarn-debug.log
+**/yarn-error.log
+
+# Artifacts and local data (usually large/ephemeral)
+artifacts/
+src/backend/data/
+
+# OS/editor
+**/.DS_Store
+**/Thumbs.db

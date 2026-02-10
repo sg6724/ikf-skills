@@ -55,6 +55,49 @@ cd src/frontend-v2
 npm run dev
 ```
 
+## Deploy (Beginner-Friendly)
+
+This repo is easiest to deploy as 2 services:
+- **Frontend (Next.js)** on Vercel (or any Node host)
+- **Backend (FastAPI)** on Railway/Render/Fly/a VM
+
+The frontend talks to the backend via same-origin Next.js routes (`/api/...`) which proxy to the backend URL.
+You only need to set one frontend env var: `NEXT_PUBLIC_API_URL`.
+
+### Option A: Vercel (frontend) + Railway (backend, via Docker)
+
+1. Push this branch to GitHub.
+2. Deploy backend on Railway:
+   - Create a new project from your GitHub repo.
+   - Use the repo root as the build context (the backend needs `skills/` at repo root).
+   - Railway will detect the root `Dockerfile` and build it.
+   - Set backend environment variables (examples):
+     - `OPENAI_API_KEY` (if using OpenAI)
+     - `GOOGLE_API_KEY`
+     - `TAVILY_API_KEY`
+     - Optional persistence:
+       - `SQLITE_DB_PATH=/data/ikf_chat.db` (point this at a mounted volume/disk)
+       - Keep `ALLOW_UNAUTHENTICATED_CONVERSATION_DELETE=false` (default)
+   - After deploy, copy the backend public URL (e.g. `https://your-backend.up.railway.app`).
+3. Deploy frontend on Vercel:
+   - Import the GitHub repo.
+   - Set **Root Directory** to `src/frontend-v2`.
+   - Add env var: `NEXT_PUBLIC_API_URL=https://your-backend.up.railway.app`
+   - Deploy.
+
+### Option B: No Docker (still 2 services)
+
+You can deploy the backend without Docker as long as:
+- The backend is started with `uvicorn` binding `0.0.0.0` and the platform-provided port.
+
+Example start command:
+```bash
+cd src/backend
+uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Then deploy the frontend the same way as Option A and set `NEXT_PUBLIC_API_URL` to the backend URL.
+
 ## API Surface
 - `POST /api/chat` (SSE stream)
 - `GET /api/conversations`
