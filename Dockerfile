@@ -12,17 +12,17 @@ RUN pip install --no-cache-dir uv
 COPY src/backend/pyproject.toml src/backend/uv.lock ./src/backend/
 
 # Install dependencies using WORKDIR instead of cd
-WORKDIR /app/src/backend
+WORKDIR /src/backend/app
 RUN uv sync --frozen
 
 # Go back to /app and copy entire repo
-WORKDIR /app
+WORKDIR /
 COPY . .
 
 EXPOSE 8000
 
 # Set working directory to backend for running the app
-WORKDIR /app/src/backend
+WORKDIR /src/backend/app
 
 # Use the same command as local
 CMD ["uv", "run", "python", "-m", "app.main"]
